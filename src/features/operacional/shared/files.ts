@@ -6,7 +6,8 @@ export const MAX_LOGO_BYTES = 2 * MB;
 export const MAX_COVER_BYTES = 2 * MB;
 export const MAX_VIDEO_BYTES = 50 * MB;
 
-export const LOGO_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"] as const;
+// SVG fica de fora: pode carregar script se aberto direto pela URL assinada.
+export const LOGO_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export const COVER_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"] as const;
 
@@ -83,10 +84,6 @@ export function matchesImageSignature(bytes: Uint8Array, type: string): boolean 
       return starts(0xff, 0xd8, 0xff);
     case "image/webp":
       return starts(0x52, 0x49, 0x46, 0x46) && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
-    case "image/svg+xml": {
-      const head = new TextDecoder().decode(bytes.subarray(0, 1024)).toLowerCase();
-      return head.includes("<svg") && !head.includes("<script");
-    }
     default:
       return false;
   }

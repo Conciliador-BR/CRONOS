@@ -41,67 +41,67 @@ Regra: **um escritor por arquivo**. Revisores só leem; correções voltam para 
 
 ## Épico 1 — Apresentação, login e início
 
-- [ ] **1.1 Página de apresentação** (`/`) — Designer. Hero, módulos do CRM (Empresas, Operacional, Comercial, Marketing), chamada para login. Preto e azul, responsiva.
-- [ ] **1.2 Login** (`/login`) — Designer. E-mail e senha via Supabase Auth, erros ao lado dos campos, estado de carregamento, redireciono para `next` ou `/inicio`. Mensagem para conta inativa (`?erro=inativo`).
-- [ ] **1.3 Primeiro acesso** (`/primeiro-acesso`) — Designer. Disponível enquanto não existe admin ativo; o banco só promove a admin e-mails da lista privada `private.bootstrap_admins`, após confirmação do e-mail.
-- [ ] **1.4 Shell do app** — Componentização. Menu lateral com Início, Empresas, Operacional, Comercial, Marketing, Configurações; topo com usuário e sair; colapsa no celular.
-- [ ] **1.5 Página inicial** (`/inicio`) — Dev Empresas. Atalhos para os módulos e resumo (empresas cadastradas, leads abertos, próximas reuniões, missões atribuídas a mim).
+- [x] **1.1 Página de apresentação** (`/`) — Designer. Hero, módulos do CRM (Empresas, Operacional, Comercial, Marketing), chamada para login. Preto e azul, responsiva.
+- [x] **1.2 Login** (`/login`) — Designer. E-mail e senha via Supabase Auth, erros ao lado dos campos, estado de carregamento, redireciono para `next` ou `/inicio`. Mensagem para conta inativa (`?erro=inativo`).
+- [x] **1.3 Primeiro acesso** (`/primeiro-acesso`) — Designer. Disponível enquanto não existe admin ativo; o banco só promove a admin e-mails da lista privada `private.bootstrap_admins`, após confirmação do e-mail.
+- [x] **1.4 Shell do app** — Componentização. Menu lateral com Início, Empresas, Operacional, Comercial, Marketing, Configurações; topo com usuário e sair; colapsa no celular.
+- [x] **1.5 Página inicial** (`/inicio`) — Dev Empresas. Atalhos para os módulos e resumo (empresas cadastradas, leads abertos, próximas reuniões, missões atribuídas a mim).
 
 ## Épico 2 — Empresas
 
-- [ ] **2.1 Mapa do Brasil** (`/empresas`) — estados com empresas cadastradas em destaque azul (intensidade pela quantidade), demais em cinza escuro. Fonte do SVG: `@svg-maps/brazil`.
-- [ ] **2.2 Card do estado** — ao clicar no estado, abrir card listando os **mercados** (nome do mercado / nome fantasia) atendidos naquele estado.
-- [ ] **2.3 Detalhe do cliente** — ao clicar no mercado, abrir as informações cadastradas: CNPJ, endereço, ECs, cliente vinculado; dados bancários e PDFs só para admin/gestor (RLS já restringe).
+- [x] **2.1 Mapa do Brasil** (`/empresas`) — estados com empresas cadastradas em destaque azul (intensidade pela quantidade), demais em cinza escuro. Fonte do SVG: `@svg-maps/brazil`.
+- [x] **2.2 Card do estado** — ao clicar no estado, abrir card listando os **mercados** (nome do mercado / nome fantasia) atendidos naquele estado.
+- [x] **2.3 Detalhe do cliente** — ao clicar no mercado, abrir as informações cadastradas: CNPJ, endereço, ECs, cliente vinculado; dados bancários e PDFs só para admin/gestor (RLS já restringe).
 
 ## Épico 3 — Configurações
 
-- [ ] **3.1 Cadastro de empresas** (`/configuracoes/empresas`) — CNPJ (com validação), razão social, nome fantasia, nome do mercado, endereço completo (CEP, logradouro, número, complemento, bairro, cidade, UF), múltiplos números de EC por adquirente, múltiplas contas (banco, agência, conta, tipo), anexar PDF (bucket `company-docs`, até 20 MB), vincular ou cadastrar cliente.
-- [ ] **3.2 Cadastro de cliente** — nome, CPF/CNPJ, e-mail, telefone, observações; pode ser criado no mesmo fluxo da empresa.
-- [ ] **3.3 Funcionários** (`/configuracoes/funcionarios`) — admin cadastra nome, e-mail, senha inicial, telefone, cargo, time, papel (admin/gestor/funcionário), % de comissão, meta mensal e foto. Cria o login no Supabase Auth (service role, só no servidor). Ativar/desativar acesso.
-- [ ] **3.4 Times** — CRUD simples de times usado em funcionários e no desempenho.
+- [x] **3.1 Cadastro de empresas** (`/configuracoes/empresas`) — CNPJ (com validação), razão social, nome fantasia, nome do mercado, endereço completo (CEP, logradouro, número, complemento, bairro, cidade, UF), múltiplos números de EC por adquirente, múltiplas contas (banco, agência, conta, tipo), anexar PDF (bucket `company-docs`, até 20 MB), vincular ou cadastrar cliente.
+- [x] **3.2 Cadastro de cliente** — nome, CPF/CNPJ, e-mail, telefone, observações; pode ser criado no mesmo fluxo da empresa.
+- [x] **3.3 Funcionários** (`/configuracoes/funcionarios`) — admin cadastra nome, e-mail, senha inicial, telefone, cargo, time, papel (admin/gestor/funcionário), % de comissão, meta mensal e foto. Cria o login no Supabase Auth (service role, só no servidor). Ativar/desativar acesso.
+- [x] **3.4 Times** — CRUD simples de times usado em funcionários e no desempenho.
 
 ## Épico 4 — Operacional
 
 Menu de 3 traços (ícone hambúrguer, "≡") no canto superior esquerdo abre o menu de subpáginas.
 
-- [ ] **4.1 Layout operacional** — botão ≡ no topo esquerdo, gaveta com: Missões, Agenda, Documentações de API, Cursos.
-- [ ] **4.2 Missões (Trello)** — quadros; listas (colunas) criáveis/renomeáveis/arrastáveis; cartões arrastáveis entre listas e dentro da lista (`@dnd-kit`); etiquetas coloridas; data de entrega com destaque de atraso; responsáveis (funcionários); checklist; descrição; mover cartão para outro quadro; arquivar.
-- [ ] **4.3 Agenda (Google Agenda)** — visões mês/semana/dia, criar reunião clicando no horário, título, descrição, local, link da reunião, cor, convidados (funcionários), editar e excluir (criador ou gestor). Vínculo opcional com lead.
-- [ ] **4.4 Documentações de API** — grade de cards de adquirentes (com logo; as logos chegam depois — usar iniciais/cor até lá); gestor adiciona/edita/reordena cards e envia logo. Ao abrir um card: anexar documentos, baixar cópias (URL assinada), bloco de notas tipo Notion (várias notas, título + texto, salvamento automático).
-- [ ] **4.5 Cursos (Hotmart/Hubla)** — vitrine de cursos com capa; curso > módulos > aulas; player de vídeo; marcar aula como concluída e progresso; gestor cria cursos e envia vídeos (bucket `course-videos`, até 50 MB por arquivo no plano free) ou cola link do Google Drive/YouTube (embed).
+- [x] **4.1 Layout operacional** — botão ≡ no topo esquerdo, gaveta com: Missões, Agenda, Documentações de API, Cursos.
+- [x] **4.2 Missões (Trello)** — quadros; listas (colunas) criáveis/renomeáveis/arrastáveis; cartões arrastáveis entre listas e dentro da lista (`@dnd-kit`); etiquetas coloridas; data de entrega com destaque de atraso; responsáveis (funcionários); checklist; descrição; mover cartão para outro quadro; arquivar.
+- [x] **4.3 Agenda (Google Agenda)** — visões mês/semana/dia, criar reunião clicando no horário, título, descrição, local, link da reunião, cor, convidados (funcionários), editar e excluir (criador ou gestor). Vínculo opcional com lead.
+- [x] **4.4 Documentações de API** — grade de cards de adquirentes (com logo; as logos chegam depois — usar iniciais/cor até lá); gestor adiciona/edita/reordena cards e envia logo. Ao abrir um card: anexar documentos, baixar cópias (URL assinada), bloco de notas tipo Notion (várias notas, título + texto, salvamento automático).
+- [x] **4.5 Cursos (Hotmart/Hubla)** — vitrine de cursos com capa; curso > módulos > aulas; player de vídeo; marcar aula como concluída e progresso; gestor cria cursos e envia vídeos (bucket `course-videos`, até 50 MB por arquivo no plano free) ou cola link do Google Drive/YouTube (embed).
 - [!] **4.6 Google Drive** — listar vídeos de uma pasta do Drive exige credencial OAuth do Google no app. Nesta entrega a aula aceita link do Drive (embed `/preview`). Integração com listagem de pasta fica pendente de credenciais.
 
 ## Épico 5 — Comercial
 
-- [ ] **5.1 Desempenho** (`/comercial/desempenho`) — dashboard: faturamento (soma de negócios fechados), pessoas trabalhando (funcionários ativos), ranking de vendas, meta x realizado por funcionário. Filtro por mês.
-- [ ] **5.2 Administração de funcionários no desempenho** — grade de cards com foto, posição no ranking e nome embaixo.
-- [ ] **5.3 Card do funcionário** — ao clicar: nome, time, clientes convertidos, valor em comissão, datas de conversão, lugar no ranking, desempenho mês a mês com gráfico (`recharts`).
-- [ ] **5.4 Pipeline CRM** (`/comercial/crm`) — colunas: Lead recebido, Diagnóstico feito, Reunião marcada, Follow up, Cliente fechado, Cliente perdido. Arrastar leads entre colunas.
-- [ ] **5.5 Ao soltar em "Cliente fechado"** — perguntar: fechou em **Consultoria avançada** ou **Somente o sistema**, e o **valor do negócio em R$**. Cancelar devolve o card.
-- [ ] **5.6 Ao soltar em "Cliente perdido"** — perguntar **por que o cliente não fechou** (texto obrigatório).
-- [ ] **5.7 Novo lead** — nome, empresa, contato, **origem** (marketing, venda, indicação, outro), **nome do indicador** quando indicação, **quente/frio**, descrição, **responsável** (funcionário).
-- [ ] **5.8 Insights** (`/comercial/insights`) — de onde chegam os leads (por origem e por indicador), taxa de conversão por origem, motivos de perda (lista e agrupamento), tudo lido do mesmo pipeline.
-- [ ] **5.9 Vínculo** — Desempenho e Insights leem as mesmas tabelas (`leads`, `lead_stage_history`, view `seller_performance`); mudanças no pipeline refletem na hora.
+- [x] **5.1 Desempenho** (`/comercial/desempenho`) — dashboard: faturamento (soma de negócios fechados), pessoas trabalhando (funcionários ativos), ranking de vendas, meta x realizado por funcionário. Filtro por mês.
+- [x] **5.2 Administração de funcionários no desempenho** — grade de cards com foto, posição no ranking e nome embaixo.
+- [x] **5.3 Card do funcionário** — ao clicar: nome, time, clientes convertidos, valor em comissão, datas de conversão, lugar no ranking, desempenho mês a mês com gráfico (`recharts`).
+- [x] **5.4 Pipeline CRM** (`/comercial/crm`) — colunas: Lead recebido, Diagnóstico feito, Reunião marcada, Follow up, Cliente fechado, Cliente perdido. Arrastar leads entre colunas.
+- [x] **5.5 Ao soltar em "Cliente fechado"** — perguntar: fechou em **Consultoria avançada** ou **Somente o sistema**, e o **valor do negócio em R$**. Cancelar devolve o card.
+- [x] **5.6 Ao soltar em "Cliente perdido"** — perguntar **por que o cliente não fechou** (texto obrigatório).
+- [x] **5.7 Novo lead** — nome, empresa, contato, **origem** (marketing, venda, indicação, outro), **nome do indicador** quando indicação, **quente/frio**, descrição, **responsável** (funcionário).
+- [x] **5.8 Insights** (`/comercial/insights`) — de onde chegam os leads (por origem e por indicador), taxa de conversão por origem, motivos de perda (lista e agrupamento), tudo lido do mesmo pipeline.
+- [x] **5.9 Vínculo** — Desempenho e Insights leem as mesmas tabelas (`leads`, `lead_stage_history`, view `seller_performance`); mudanças no pipeline refletem na hora.
 
 ## Épico 6 — Marketing
 
-- [ ] **6.1 Página Marketing** (`/marketing`) — o pedido não detalha esta página. Entrega inicial: leads de origem marketing (volume por mês, conversão, quentes x frios) reaproveitando as consultas do Comercial. Escopo completo a definir com o Mateus.
+- [x] **6.1 Página Marketing** (`/marketing`) — o pedido não detalha esta página. Entrega inicial: leads de origem marketing (volume por mês, conversão, quentes x frios) reaproveitando as consultas do Comercial. Escopo completo a definir com o Mateus.
 
 ## Épico 7 — Segurança
 
-- [ ] **7.1** Revisar RLS de todas as tabelas e buckets com testes SQL simulando admin, gestor, funcionário, inativo e anônimo.
-- [ ] **7.2** Revisar Server Actions: validação Zod, `requireRole` antes de qualquer escrita privilegiada, nenhum uso de service role fora de ações de admin.
-- [ ] **7.3** Uploads: tipo e tamanho validados, nomes de arquivo saneados, caminhos gerados no servidor, downloads por URL assinada de curta duração.
-- [ ] **7.4** Segredos: service role só no servidor (`server-only`), nada em `NEXT_PUBLIC_*` além de URL e publishable key, logs sem dados pessoais.
-- [ ] **7.5** Rodar os advisors do Supabase e registrar o resultado em `docs/security.md`.
-- [ ] **7.6** Recomendação de configuração: desativar cadastro público no Supabase Auth depois do primeiro acesso.
+- [x] **7.1** Revisar RLS de todas as tabelas e buckets com testes SQL simulando admin, gestor, funcionário, inativo e anônimo.
+- [x] **7.2** Revisar Server Actions: validação Zod, `requireRole` antes de qualquer escrita privilegiada, nenhum uso de service role fora de ações de admin.
+- [x] **7.3** Uploads: tipo e tamanho validados, nomes de arquivo saneados, caminhos gerados no servidor, downloads por URL assinada de curta duração.
+- [x] **7.4** Segredos: service role só no servidor (`server-only`), nada em `NEXT_PUBLIC_*` além de URL e publishable key, logs sem dados pessoais.
+- [x] **7.5** Rodar os advisors do Supabase e registrar o resultado em `docs/security.md`.
+- [x] **7.6** Recomendação de configuração: desativar cadastro público no Supabase Auth depois do primeiro acesso.
 
 ## Épico 8 — Qualidade e documentação
 
-- [ ] **8.1** `pnpm check` (lint, tipos, testes, build) verde.
-- [ ] **8.2** Testes Vitest para regras de negócio (dinheiro, CNPJ, validações do pipeline, cálculos de ranking/comissão).
-- [ ] **8.3** Documentos do toolkit: `PRODUCT.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/architecture.md`, `docs/design.md`, `docs/onboarding.md`, `docs/quality.md`, `docs/setup.md`.
-- [ ] **8.4** Navegar o app localmente (Playwright) nas páginas públicas e registrar evidência.
+- [x] **8.1** `pnpm check` (lint, tipos, testes, build) verde.
+- [x] **8.2** Testes Vitest para regras de negócio (dinheiro, CNPJ, validações do pipeline, cálculos de ranking/comissão).
+- [x] **8.3** Documentos do toolkit: `PRODUCT.md`, `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/architecture.md`, `docs/design.md`, `docs/onboarding.md`, `docs/quality.md`, `docs/setup.md`.
+- [~] **8.4** Navegar o app localmente (Playwright) nas páginas públicas e registrar evidência. Feito nas páginas públicas; fluxos logados pendentes do primeiro acesso (rede do ambiente bloqueia o Supabase).
 
 ## Pendências que dependem do Mateus
 

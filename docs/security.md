@@ -223,3 +223,84 @@ Resultado final (depois da migration). "erro 42501" é recusa por RLS ou privil�
 
 - Revisar o módulo Operacional quando estiver pronto (itens em "Fora do escopo").
 - Depois de corrigir P2-02 e P2-03, conferir os cabeçalhos com `curl -I` no ambiente local e um POST de outra origem em `/auth/signout`.
+
+## Fase 2b — módulo Operacional
+
+- **Data:** 2026-10-23. **Commit:** `9eab41f`. Não há alterações locais em `src/features/operacional/**` nem em `src/app/(app)/operacional/**` (as do repositório são em `README.md`, `TASKS.md` e `docs/setup.md`).
+- **Escopo:** Missões, Agenda, Documentações de API, Cursos, os utilitários de `operacional/shared` e a migration `20261023190000_operacional_course_covers.sql`.
+- **Método:** leitura manual de todas as Server Actions (`missoes/{board,card}-actions.ts`, `agenda/actions.ts`, `documentacoes/{acquirer,document,note}-actions.ts`, `cursos/{course,lesson}-actions.ts`), das consultas e dos componentes que exibem URL, imagem, vídeo ou iframe; buscas por `dangerouslySetInnerHTML`, `href={…}`, `<img>`, `<iframe>`, `<video>`, `style={{…}}` e importações de servidor em componentes cliente. `pnpm exec tsc --noEmit` passou. Testes de banco em `begin; … rollback;` (mesmo método da fase 1), conferindo depois que não sobrou usuário, objeto nem quadro de teste.
+
+### Testes de banco (Storage `course-covers` e integridade de Missões)
+
+| Cenário | Esperado | Observado | Resultado |
+|---|---|---|---|
+| Bucket `course-covers` | privado, 2 MB, PNG/JPEG/WebP | igual | Passou |
+| anon lê / grava capa | nada / recusado | 0 linhas / erro 42501 | Passou |
+| Inativo lê / grava capa | nada / recusado | 0 linhas / erro 42501 | Passou |
+| Funcionário lê capa | permitido | 1 linha | Passou |
+| Funcionário grava / renomeia / apaga capa | recusado / nada / nada | erro 42501 / 0 / 0 linhas | Passou |
+| Funcionário apaga objeto de `acquirer-logos` e `course-videos` | nada | 0 linhas | Passou |
+| Gestor lê / grava / apaga capa | permitido | 1 / 1 / 1 linha | Passou |
+| Gestor renomeia capa (não há política de UPDATE) | nada | 0 linhas | Passou (por isso troca de capa é "enviar nova + apagar antiga", como o código faz) |
+| Cartão com `board_id` do quadro A e `list_id` de uma lista do quadro B | recusado | **aceito** (1 linha) | Falhou: P2b-01 |
+| Etiqueta do quadro B em cartão do quadro A | recusado | **aceito** (1 linha) | Falhou: P2b-01 |
+
+Os `DELETE` diretos em `storage.objects` exigem `storage.allow_delete_query = true` (trigger `storage.protect_delete`, que a Storage API liga); o teste simulou isso.
+
+### Conferido sem achado
+
+| Ponto | Evidência |
+|---|---|
+| Sessão e Zod no início de cada ação | Todas as ações começam com `requireMember()` ou `requireManagerOrNull()` (`shared/action-utils.ts`, que é `server-only`) e validam a entrada com Zod antes de acessar o banco |
+| Envio de documento (`acquirer-docs`) | Caminho gerado no servidor (`<adquirente>/<uuid>-<nome-saneado>`, `document-actions.ts`); `registerDocument` confere que o caminho está na pasta da adquirente informada, sem `/` nem `..` (`isPathInFolder`, `:38`), e lê o tamanho real no Storage (`:43`) |
+| Envio de vídeo (`course-videos`) | Só gestor; caminho no servidor; `verifyVideo` (`lesson-actions.ts:40-50`) exige que o caminho esteja na pasta do curso do módulo da aula, além de tamanho e tipo do Storage. Ids de lista/módulo no reordenamento são filtrados pelo pai (`.eq("module_id"/"course_id", parentId)`) |
+| Logo e capa | Só gestor; arquivo lido no servidor, com tipo, tamanho e assinatura dos bytes conferidos (`shared/image-upload.ts`), caminho gerado no servidor, `upsert: false`. Exibidos só via `<img src={URL assinada}>` (`acquirer-logo.tsx:21`, `course-cover.tsx:25`); um `<img>` não executa script de SVG e não há SVG inline |
+| Link de reunião | `meetingUrl` só aceita `https://` (Zod em `agenda/schemas.ts` e `check` no banco); o link abre com `rel="noopener noreferrer"` (`event-details-modal.tsx:97`) |
+| Vídeo do YouTube/Drive | O `src` do iframe é montado só com o id extraído e validado por regex (`video.ts`: `youtube-nocookie.com/embed/<id>` ou `drive.google.com/file/d/<id>/preview`), nunca com o texto colado; iframe com `sandbox` e `referrerPolicy` (`lesson-player.tsx`) |
+| Participantes (S-04) | `syncAttendees` (`agenda/actions.ts:36`) usa o cliente do usuário, então a RLS da fase 1 se aplica; só perfis ativos entram; `canEdit` antecipa a mesma regra (criador ou gestor) |
+| Mover cartão no quadro | `moveCard` confere que a lista é do quadro e filtra o cartão por `board_id`; `transferCard` confere a lista de destino no quadro de destino e remove as etiquetas do quadro antigo |
+| Notas (autosave) | `updateNote` exige membro, valida tamanho (100 mil caracteres) e grava `updated_by` com o id da sessão; editar qualquer nota é a regra do produto (colaborativo, RLS `acquirer_notes_member`). A nota é editada e exibida em `<textarea>`, sem HTML |
+| XSS e estilos | Nenhum `dangerouslySetInnerHTML`; cores em `style` vêm de campos com regex `#RRGGBB` (Zod e `check` no banco) |
+| URLs assinadas | Documento: 60 s com `download`; logos, capas e avatares: 1 h; vídeo: 3 h (duração de uma aula longa) |
+| Componentes cliente | Nenhum importa `@/lib/auth`, `supabase/server`, `supabase/admin`, `queries.ts` ou `shared/action-utils`/`image-upload`/`members` (todos `server-only`) |
+| Logs | `failure()` registra só escopo, código e nome do erro |
+
+### Achados
+
+| ID | Título | Severidade | Status |
+|---|---|---|---|
+| P2b-01 | Cartão e etiqueta podem ficar com quadro inconsistente | Baixa | Corrigido (migration 20261023210000 + código) |
+| P2b-02 | `acquirer-docs` aceita qualquer tipo de arquivo | Baixa | Corrigido (migration 20261023210000 + código) |
+| P2b-03 | Checagem de SVG da logo é superficial | Baixa | Corrigido (migration 20261023210000 + código) |
+
+**P2b-01 — Integridade de quadro (Baixa, confirmado no banco).** `createCard` (`missoes/card-actions.ts:33-42`) grava `board_id` e `list_id` vindos do navegador sem conferir que a lista é do quadro, e `toggleCardLabel` (`:137-144`) liga qualquer etiqueta a qualquer cartão. O banco não impede (teste acima). Cenário: um membro chama a ação com `boardId` de A e `listId` de B; o cartão some do quadro A (a lista não existe ali) e não aparece em B (o filtro é por `board_id`); uma etiqueta de B passa a aparecer em cartão de A. Não há ganho de acesso, porque todo membro já edita todos os quadros; é corrupção de dados por cliente adulterado. Correção no código: em `createCard`, repetir a checagem de `moveCard` (`board_lists` com `id = listId` e `board_id = boardId`, senão erro); em `toggleCardLabel`, conferir `labels.board_id = boardId` e `cards.board_id = boardId` antes do upsert. Correção no banco (migration nova, recomendada):
+```sql
+alter table public.board_lists add constraint board_lists_id_board_key unique (id, board_id);
+alter table public.cards add constraint cards_list_board_fkey
+  foreign key (list_id, board_id) references public.board_lists (id, board_id) on delete cascade;
+-- etiqueta e cartão do mesmo quadro
+create or replace function public.check_card_label_board() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if not exists (select 1 from public.cards c join public.labels l on l.board_id = c.board_id
+                 where c.id = new.card_id and l.id = new.label_id) then
+    raise exception 'Etiqueta de outro quadro' using errcode = '23514';
+  end if;
+  return new;
+end $$;
+revoke execute on function public.check_card_label_board() from public, anon, authenticated;
+create trigger card_labels_same_board before insert or update on public.card_labels
+  for each row execute function public.check_card_label_board();
+```
+Antes da FK composta, conferir que não existem cartões inconsistentes (`select … from cards c join board_lists l on l.id = c.list_id where l.board_id <> c.board_id`). `transferCard` atualiza `board_id` e `list_id` no mesmo `update`, então continua compatível.
+
+**P2b-02 — Tipos livres em `acquirer-docs` (Baixa).** O bucket não tem `allowed_mime_types` (`init_schema.sql:689`) e o navegador envia com `file.type` (`documents-section.tsx:36`). Qualquer membro pode anexar HTML ou SVG com script. O app só entrega com `download` (`document-actions.ts`), mas, como a RLS deixa membros lerem o bucket, um membro pode gerar pelo cliente do navegador uma URL assinada sem `download` e mandá-la a um colega; o conteúdo abre no domínio do Supabase (fora da origem do app e sem os cookies dele). Correção: migration com `update storage.buckets set allowed_mime_types = array['application/pdf','text/plain','text/csv','application/json','application/zip','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','image/png','image/jpeg','image/webp'] where id = 'acquirer-docs';` (ajustar à lista que a equipe usa), com mensagem clara no envio.
+
+**P2b-03 — SVG de logo (Baixa; complementa R-08).** `matchesImageSignature` (`shared/files.ts:86-88`) só procura `<script` nos primeiros 1.024 bytes; `onload=`, `javascript:` ou `<foreignObject>` passam, assim como `<script` depois do primeiro KB. Dentro do app a logo é `<img>` e não executa nada; o risco aparece só se alguém abrir a URL assinada direto no navegador (domínio do Supabase). Só gestores enviam logo. Correção mais simples: tirar `image/svg+xml` de `LOGO_MIME_TYPES` e do bucket `acquirer-logos`. Se SVG for necessário, conferir o arquivo inteiro e recusar `<script`, `on[a-z]+=`, `javascript:`, `<foreignObject` e `xlink:href`/`href` externos.
+
+### Observações (sem ação agora)
+
+- Vídeos e capas são aceitos pelo `contentType` declarado (vídeo) ou pela assinatura (capa); vídeos não têm checagem de bytes. Só gestores enviam e o arquivo é servido como vídeo; aceito.
+- Duas aulas do mesmo curso podem apontar para o mesmo `video_path`; excluir uma remove o vídeo da outra. Só gestor; é integridade, não acesso.
+- Quadros, listas, cartões, documentos e notas são editáveis e excluíveis por qualquer membro; é a regra do produto ("colaborativo") e a RLS confirma.
+- `createEvent` grava o evento antes dos participantes; se a inclusão de participantes falhar, o evento fica sem eles e a ação devolve erro. Comportamento aceitável; considerar avisar "evento criado sem participantes".

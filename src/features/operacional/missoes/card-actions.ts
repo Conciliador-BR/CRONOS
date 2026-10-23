@@ -36,6 +36,8 @@ export async function createCard(input: unknown): Promise<ActionResult<{ card: B
   if (!parsed.success) return invalid(parsed.error);
   const { boardId, listId, title } = parsed.data;
   const supabase = await createClient();
+  const { data: list } = await supabase.from("board_lists").select("id").eq("id", listId).eq("board_id", boardId).maybeSingle();
+  if (!list) return { ok: false, error: "Lista não encontrada neste quadro." };
   const position = await lastCardPosition(supabase, listId);
   const { data, error } = await supabase
     .from("cards")
@@ -140,6 +142,13 @@ export async function toggleCardLabel(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return invalid(parsed.error);
   const { cardId, boardId, targetId, on } = parsed.data;
   const supabase = await createClient();
+  if (on) {
+    const [{ data: card }, { data: label }] = await Promise.all([
+      supabase.from("cards").select("id").eq("id", cardId).eq("board_id", boardId).maybeSingle(),
+      supabase.from("labels").select("id").eq("id", targetId).eq("board_id", boardId).maybeSingle(),
+    ]);
+    if (!card || !label) return { ok: false, error: "Etiqueta ou cartão não pertence a este quadro." };
+  }
   const { error } = on
     ? await supabase.from("card_labels").upsert({ card_id: cardId, label_id: targetId }, { ignoreDuplicates: true })
     : await supabase.from("card_labels").delete().eq("card_id", cardId).eq("label_id", targetId);

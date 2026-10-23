@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CRONOS
 
-## Getting Started
+CRM interno que une missões no estilo Trello, agenda de reuniões, documentação de APIs por adquirente, cursos em vídeo e pipeline comercial com desempenho e insights. Identidade visual preta e azul, interface em português.
 
-First, run the development server:
+## Rodar localmente
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env.local
+pnpm dev   # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Detalhes de ambiente, primeiro acesso e banco: [docs/onboarding.md](docs/onboarding.md).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Verificar
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm check   # lint + tipos + testes + build
+```
 
-## Learn More
+## Mapa dos documentos
 
-To learn more about Next.js, take a look at the following resources:
+| Documento | Conteúdo |
+|---|---|
+| [PRODUCT.md](PRODUCT.md) | Problema, papéis, escopo, critérios de aceite |
+| [TASKS.md](TASKS.md) | Plano de tarefas por épico e responsáveis |
+| [AGENTS.md](AGENTS.md) / [CLAUDE.md](CLAUDE.md) | Regras para agentes de IA |
+| [docs/architecture.md](docs/architecture.md) | Estrutura, fronteiras, modelo de dados, decisões |
+| [docs/design.md](docs/design.md) | Tokens visuais, componentes, acessibilidade |
+| [docs/onboarding.md](docs/onboarding.md) | Preparação local e primeiro acesso |
+| [docs/quality.md](docs/quality.md) | Checks e estratégia de testes |
+| [docs/security.md](docs/security.md) | Revisão de segurança, testes de RLS, riscos aceitos |
+| [docs/setup.md](docs/setup.md) | Evidências do setup com o vibe-coding-toolkit |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind 4 · Supabase (Postgres, Auth, Storage) · Zod · dnd-kit · Recharts · Vitest.

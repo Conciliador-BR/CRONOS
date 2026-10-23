@@ -67,7 +67,6 @@ describe("matchesImageSignature", () => {
   });
   it("recusa conteúdo trocado e SVG com script", () => {
     expect(matchesImageSignature(new TextEncoder().encode("<html>"), "image/png")).toBe(false);
-    expect(matchesImageSignature(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), "image/svg+xml")).toBe(true);
-    expect(matchesImageSignature(new TextEncoder().encode("<svg><script>alert(1)</script></svg>"), "image/svg+xml")).toBe(false);
+    expect(matchesImageSignature(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), "image/svg+xml")).toBe(false);
   });
 });
