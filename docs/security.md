@@ -194,12 +194,12 @@ Resultado final (depois da migration). "erro 42501" é recusa por RLS ou privil�
 
 | ID | Título | Severidade | Status |
 |---|---|---|---|
-| P2-01 | Textos do primeiro acesso prometem admin a qualquer cadastro | Baixa | Aberto |
-| P2-02 | Sem cabeçalhos de segurança (clickjacking, nosniff) | Baixa | Aberto |
-| P2-03 | Logout por POST sem checar a origem (CSRF de logout) | Baixa | Aberto |
-| P2-04 | Conteúdo de PDF e avatar não conferido pelos bytes | Baixa | Aberto |
-| P2-05 | Redefinir senha não encerra sessões abertas | Baixa | Aberto |
-| P2-06 | `emailRedirectTo` montado a partir do cabeçalho `Origin` | Informativa | Aberto |
+| P2-01 | Textos do primeiro acesso prometem admin a qualquer cadastro | Baixa | Corrigido (f4e03b8) |
+| P2-02 | Sem cabeçalhos de segurança (clickjacking, nosniff) | Baixa | Corrigido (f4e03b8) |
+| P2-03 | Logout por POST sem checar a origem (CSRF de logout) | Baixa | Corrigido (f4e03b8) |
+| P2-04 | Conteúdo de PDF e avatar não conferido pelos bytes | Baixa | Corrigido (f4e03b8) |
+| P2-05 | Redefinir senha não encerra sessões abertas | Baixa | Mitigado: a interface orienta desativar o acesso para desconectar |
+| P2-06 | `emailRedirectTo` montado a partir do cabeçalho `Origin` | Informativa | Aceito (Supabase só aceita Redirect URLs da lista) |
 
 **P2-01 — Textos do primeiro acesso (Baixa, confirmado).** Depois de S-05, só um e-mail confirmado de `private.bootstrap_admins` vira admin, mas a interface diz o contrário: `src/app/primeiro-acesso/page.tsx:17` ("Crie a conta do administrador. Ela terá acesso total…"), `setup-form.tsx:75` (botão "Criar administrador"), `src/app/login/page.tsx:31` (link "Criar o administrador") e o comentário desatualizado de `needs-setup.ts:5` ("não existe nenhum usuário"). Cenário: enquanto não há admin ativo, qualquer visitante (ou o dono com um e-mail digitado errado) cria a conta achando que é admin, confirma o e-mail e recebe "Seu acesso ainda não foi liberado", sem explicação. Não há escalada, mas o texto engana e gera contas inativas. Correção: descrição "Use o e-mail autorizado do responsável pelo CRONOS. Outros cadastros ficam aguardando liberação."; botão "Criar conta"; link "Primeiro acesso do responsável"; no estado `verify`, avisar que o acesso de admin só vale para o e-mail autorizado; comentário: "true enquanto não houver admin ativo".
 
