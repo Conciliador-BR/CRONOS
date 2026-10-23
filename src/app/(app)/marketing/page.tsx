@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { PagePlaceholder } from "@/components/layout/page-header";
+import { PageHeader } from "@/components/layout/page-header";
+import { MarketingView } from "@/features/marketing/components/marketing-view";
+import { getMarketingLeads } from "@/features/marketing/queries";
 
 export const metadata: Metadata = { title: "Marketing" };
 
-export default function Page() {
+export default async function Page() {
+  const leads = await getMarketingLeads();
   return (
-    <PagePlaceholder
-      title="Marketing"
-      description="Leads de origem marketing: volume por mês, conversão e quentes x frios."
-    />
+    <>
+      <PageHeader title="Marketing" description="Leads de origem marketing: volume por mês, conversão e quentes x frios." />
+      <MarketingView leads={leads} now={new Date()} />
+    </>
   );
 }

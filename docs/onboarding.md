@@ -26,7 +26,7 @@ Nunca versione `.env.local` nem cole a service role em chats ou issues.
 
 ## Primeiro acesso
 
-1. Abra `/primeiro-acesso` e crie sua conta. O banco promove o **primeiro** usuário a admin ativo.
+1. Abra `/primeiro-acesso` e crie sua conta com o e-mail do dono. Só e-mails cadastrados na tabela privada `private.bootstrap_admins` (preenchida direto no banco, fora do repositório) viram admin, e só depois de confirmar o e-mail. Para trocar o dono: `insert into private.bootstrap_admins values ('<email-em-minusculas>');` no SQL Editor.
 2. Confirme o e-mail se o Supabase pedir.
 3. Em Configurações → Funcionários, crie os logins da equipe (requer a service role).
 4. Recomendado: no painel do Supabase, Authentication → Sign In / Providers, desative "Allow new users to sign up". Contas criadas fora do fluxo do admin nascem inativas e não acessam nada, mas desativar evita lixo.

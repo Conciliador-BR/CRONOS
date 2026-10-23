@@ -46,7 +46,7 @@ Todos os fluxos acima. Detalhamento e responsáveis em [TASKS.md](TASKS.md).
 
 ## Suposições e decisões pendentes
 
-- Suposição: o primeiro usuário criado é o dono (admin). Reversível pelo painel.
+- Decisão: o dono vira admin pelo e-mail cadastrado em `private.bootstrap_admins` (o repositório é público, então "primeiro usuário vira admin" seria explorável). Demais cadastros públicos nascem inativos.
 - Suposição: todos os funcionários veem o pipeline inteiro (necessário para ranking e insights); só dono do lead, criador ou gestor altera.
 - Pendente: chave `SUPABASE_SERVICE_ROLE_KEY` para criar logins de funcionários.
 - Pendente: logos das adquirentes (enviadas depois pelo Mateus).

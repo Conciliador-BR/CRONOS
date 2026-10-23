@@ -26,3 +26,7 @@ src/features/marketing/
 - Toda Server Action começa com `requireMember()` ou `requireRole([...])` e valida a entrada com Zod antes de tocar no banco. A RLS é a proteção real; a checagem na ação dá mensagem clara e evita trabalho inútil.
 - Dinheiro em centavos (`number` inteiro) com `@/lib/format/money`.
 - Arquivos até 350 linhas; um escritor por arquivo (ver `TASKS.md`).
+
+## Implementado
+
+- Entrega inicial: total, conversão (fechados ÷ total), faturamento, quentes x frios, leads por mês (6 meses, fuso de São Paulo) e últimos leads. Consulta própria em `queries.ts`; métricas puras testadas em `metrics.test.ts`. Página marcada como "em evolução".

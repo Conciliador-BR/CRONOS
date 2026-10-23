@@ -1,28 +1,73 @@
 # Comercial
 
-Desempenho (dashboard e ranking), CRM (pipeline de leads com arrastar e soltar) e Insights (origens, conversão, motivos de perda). As abas já existem em `src/app/(app)/comercial/layout.tsx`.
+Desempenho (dashboard e ranking), CRM (pipeline de leads com arrastar e soltar) e Insights (origens, conversão, motivos de perda). As abas ficam em `src/app/(app)/comercial/layout.tsx`.
 
 **Responsável:** Dev sênior chefe.
 
 ## Dados
 
-`leads`, `lead_stage_history` (preenchida por trigger ao mudar `stage`), `sales_goals`, `profiles`, `teams` e a view `seller_performance`. Valores em centavos (`deal_value_cents`).
+`leads`, `lead_stage_history` (preenchida por trigger ao mudar `stage`), `sales_goals`, `profiles`, `teams` e a view `seller_performance`. Valores em centavos (`deal_value_cents`, `goal_cents`). Desempenho, Insights, Marketing e Início leem as mesmas tabelas; toda mutação chama `revalidatePath` para `/comercial/*`, `/marketing` e `/inicio`.
 
-## Estrutura esperada
+Meses são contados no fuso de São Paulo (UTC−03:00): um negócio fechado às 22h do dia 31 conta naquele mês.
+
+## Consultas para outros módulos (`queries.ts`, server-only)
+
+Assinaturas estáveis. Importe só em Server Components ou Server Actions.
+
+```ts
+import { getLeadSourceStats, getOpenLeadsCount, type LeadSourceStats } from "@/features/comercial/queries";
+
+type LeadStatsRange = { from?: Date | string; to?: Date | string }; // por created_at; `to` exclusivo
+
+getLeadSourceStats(range?: LeadStatsRange): Promise<LeadSourceStats>
+getOpenLeadsCount(): Promise<number> // leads fora de "Cliente fechado" e "Cliente perdido"
+```
+
+`LeadSourceStats` (de `lib/lead-stats.ts`):
+
+```ts
+type Counts = { total; won; lost; open; quente; frio }            // números inteiros
+LeadSourceStats = Counts & {
+  conversionRate: number                                          // won ÷ total (0–1)
+  bySource: (Counts & { source; share; conversionRate })[]        // sempre as 4 origens, ordem de LEAD_SOURCES
+  byMonth: (Counts & { month: "AAAA-MM"; conversionRate; sources: Record<LeadSource, Counts> })[]
+}
+```
+
+Exemplo para Marketing: `stats.bySource.find(s => s.source === "marketing")` e `stats.byMonth.map(m => m.sources.marketing)`.
+
+Rótulos e enums prontos para a interface: `constants.ts` (`SOURCE_LABELS`, `STAGE_LABELS`, `TEMPERATURE_LABELS`, `DEAL_TYPE_LABELS`). Formatação: `lib/format.ts` (`formatPercent`, `formatDate`) e `lib/months.ts` (`formatMonthLabel`, `lastMonths`, `toMonthKey`).
+
+## Estrutura
 
 ```
 src/features/comercial/
-  components/     UI do módulo (Server Components por padrão; "use client" só onde há interação)
-  actions.ts      Server Actions ("use server"): validam com Zod, chamam requireMember/requireRole antes de escrever
-  queries.ts      Leituras no servidor (import "server-only"; createClient de @/lib/supabase/server)
-  schemas.ts      Schemas Zod compartilhados por formulários e ações
-  *.test.ts       Testes Vitest de lógica pura (cálculos, transformações, regras)
+  constants.ts            Etapas, origens, temperaturas, tipos de negócio e rótulos
+  types.ts                PipelineLead, MemberOption, StageHistoryEntry, ActionResult
+  schemas.ts              Zod: lead (novo/edição), mover, fechar, perder, meta
+  actions.ts              createLead, updateLead, moveLead, deleteLead (gestor), loadLeadHistory, setSalesGoal (gestor)
+  queries.ts              getPipelineData, getActiveMembers, getLeadHistory, getLeadSourceStats, getOpenLeadsCount
+  performance-queries.ts  getPerformanceData(month)
+  insights-queries.ts     getInsightsData(period)
+  lib/                    Lógica pura com testes Vitest: meses, posições, ranking/comissão/meta,
+                          transição de etapa, estatísticas de origem/indicadores/motivos, filtros do pipeline
+  components/crm/         Quadro (dnd-kit), cards, modais de fechar/perder, novo lead, gaveta do lead
+  components/desempenho/  Seletor de mês, KPIs, ranking, meta x realizado, equipe, card do funcionário, gráfico
+  components/insights/    Filtro de período, origens, temperatura, indicadores, motivos de perda
 ```
 
-## Regras
+## Regras do pipeline
 
-- As páginas em `src/app/(app)/comercial` ficam finas: leem com `queries.ts` e renderizam `components/`.
-- Componentes cliente nunca importam `queries.ts`, `@/lib/auth`, `@/lib/supabase/server` ou `@/lib/supabase/admin`.
-- Toda Server Action começa com `requireMember()` ou `requireRole([...])` e valida a entrada com Zod antes de tocar no banco. A RLS é a proteção real; a checagem na ação dá mensagem clara e evita trabalho inútil.
-- Dinheiro em centavos (`number` inteiro) com `@/lib/format/money`.
-- Arquivos até 350 linhas; um escritor por arquivo (ver `TASKS.md`).
+- Posição fracionária (`lib/positions.ts`): mover um card grava só a linha dele (a RLS só deixa alterar leads próprios).
+- `planStageMove` (`lib/stage-transition.ts`) monta a atualização: fechar exige tipo e valor e limpa o motivo; perder exige motivo e limpa o negócio; voltar para etapa aberta limpa os dois. `closed_at` é gravado pelo trigger.
+- UI otimista: o card muda na hora e volta se o servidor recusar. Cancelar o modal de fechar/perder devolve o card.
+- Arrastar: mouse (6 px), toque (segurar 200 ms) e teclado (alça ⋮⋮ + Espaço, setas, Espaço/Esc), com anúncios em português.
+- Só o responsável, quem criou ou um gestor arrastam e editam o lead (o card dos outros fica só para leitura).
+
+## Regras gerais
+
+- Páginas em `src/app/(app)/comercial` são finas: leem com as consultas e renderizam `components/`.
+- Componentes cliente nunca importam `queries.ts`, `*-queries.ts`, `@/lib/auth` ou `@/lib/supabase/server`.
+- Toda Server Action chama `requireMember()` (ou `requireRole(["admin", "gestor"])` para metas e exclusão), valida com Zod e devolve `{ ok: true } | { ok: false, error, fieldErrors? }`. Erros vão para o logger sem dados pessoais.
+- Leituras paginam de 1.000 em 1.000 (`fetchAllRows`), o limite do PostgREST.
+- Cores do gráfico em `components/desempenho/chart-colors.ts` (token `primary` + ciano validado para o fundo escuro).

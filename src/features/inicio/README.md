@@ -26,3 +26,8 @@ src/features/inicio/
 - Toda Server Action começa com `requireMember()` ou `requireRole([...])` e valida a entrada com Zod antes de tocar no banco. A RLS é a proteção real; a checagem na ação dá mensagem clara e evita trabalho inútil.
 - Dinheiro em centavos (`number` inteiro) com `@/lib/format/money`.
 - Arquivos até 350 linhas; um escritor por arquivo (ver `TASKS.md`).
+
+## Implementado
+
+- Saudação pelo horário de São Paulo, cards de resumo e atalhos (`components/home-view.tsx`).
+- Consultas próprias em `queries.ts` (empresas/UFs, leads abertos, reuniões em que sou criador ou convidado, missões abertas atribuídas a mim) para não depender dos módulos em paralelo; se uma parte falhar, o card mostra "indisponível". Pode migrar para as consultas de Comercial/Operacional depois.

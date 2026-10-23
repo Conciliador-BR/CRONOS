@@ -26,3 +26,10 @@ src/features/empresas/
 - Toda Server Action começa com `requireMember()` ou `requireRole([...])` e valida a entrada com Zod antes de tocar no banco. A RLS é a proteção real; a checagem na ação dá mensagem clara e evita trabalho inútil.
 - Dinheiro em centavos (`number` inteiro) com `@/lib/format/money`.
 - Arquivos até 350 linhas; um escritor por arquivo (ver `TASKS.md`).
+
+## Implementado
+
+- `/empresas`: mapa (`components/brazil-map.tsx`, cores em `map-utils.ts`), painel com busca, resumo e mercados do estado (`components/empresas-explorer.tsx`). A UF fica em `?uf=SP`; o detalhe abre pela URL `?empresa=<id>` numa gaveta (`components/company-detail-drawer.tsx`), lido no servidor por `getCompanyDetail`.
+- Contas bancárias e PDFs só são consultados para admin/gestor; download por URL assinada de 60 s (`actions.ts` → `getCompanyDocumentUrl`).
+- Crédito do mapa (CC BY 4.0, @svg-maps/brazil / MapSVG) no rodapé do cartão do mapa.
+- Lógica pura testada: `map-utils.test.ts`, `format.test.ts`.

@@ -43,7 +43,7 @@ Regra: **um escritor por arquivo**. Revisores só leem; correções voltam para 
 
 - [ ] **1.1 Página de apresentação** (`/`) — Designer. Hero, módulos do CRM (Empresas, Operacional, Comercial, Marketing), chamada para login. Preto e azul, responsiva.
 - [ ] **1.2 Login** (`/login`) — Designer. E-mail e senha via Supabase Auth, erros ao lado dos campos, estado de carregamento, redireciono para `next` ou `/inicio`. Mensagem para conta inativa (`?erro=inativo`).
-- [ ] **1.3 Primeiro acesso** (`/primeiro-acesso`) — Designer. Só funciona enquanto não existe nenhum usuário; cria o admin inicial (o banco promove o primeiro usuário a admin).
+- [ ] **1.3 Primeiro acesso** (`/primeiro-acesso`) — Designer. Disponível enquanto não existe admin ativo; o banco só promove a admin e-mails da lista privada `private.bootstrap_admins`, após confirmação do e-mail.
 - [ ] **1.4 Shell do app** — Componentização. Menu lateral com Início, Empresas, Operacional, Comercial, Marketing, Configurações; topo com usuário e sair; colapsa no celular.
 - [ ] **1.5 Página inicial** (`/inicio`) — Dev Empresas. Atalhos para os módulos e resumo (empresas cadastradas, leads abertos, próximas reuniões, missões atribuídas a mim).
 

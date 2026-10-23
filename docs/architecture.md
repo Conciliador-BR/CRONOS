@@ -80,7 +80,7 @@ apresentação (src/app, components/)  ->  features/<módulo>  ->  lib/supabase,
 3. **Configurações**: o layout redireciona quem não é admin/gestor para `/inicio`. É conveniência de navegação, não segurança.
 4. **Server Actions**: começam com `requireMember()` ou `requireRole([...])` e validam a entrada com Zod.
 5. **RLS é a proteção real.** Toda tabela tem RLS; funções `is_member()`, `is_manager()`, `has_role()` (security definer) checam perfil ativo e papel. Mesmo que uma ação esqueça uma checagem, o banco recusa.
-6. **Primeiro acesso**: `cronos_needs_setup()` diz se ainda não há usuários; o trigger `handle_new_user` cria o perfil, promove o primeiro usuário a admin e deixa inativo qualquer cadastro que não tenha sido convidado por um admin (`cronos_invited` no app metadata). `guard_profile_update` impede funcionário de mudar o próprio papel, status, time, comissão ou e-mail.
+6. **Primeiro acesso**: `cronos_needs_setup()` diz se ainda não há admin ativo; o trigger `handle_new_user` cria o perfil, promove a admin apenas e-mails confirmados que estejam em `private.bootstrap_admins` (migration `20261023201000_owner_bootstrap.sql`; também via trigger `on_auth_user_confirmed`) e deixa inativo qualquer cadastro que não tenha sido convidado por um admin (`cronos_invited` no app metadata). `guard_profile_update` impede funcionário de mudar o próprio papel, status, time, comissão ou e-mail.
 
 Papéis (`app_role`): `admin`, `gestor`, `funcionario`.
 
