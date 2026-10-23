@@ -42,7 +42,7 @@ Todos os fluxos acima. Detalhamento e responsáveis em [TASKS.md](TASKS.md).
 
 - Next.js 16 (App Router), TypeScript estrito, Tailwind 4, pnpm.
 - **Supabase** (Postgres + Auth + Storage) em vez do padrão Drizzle do toolkit: o produto precisa de login por funcionário, upload de arquivos e autorização por linha (RLS). Migrations em SQL versionado em `supabase/migrations/`.
-- Projeto Supabase `cronos` (ref `cnwflsucwedbmfltbeht`, sa-east-1, plano free: arquivos até 50 MB).
+- Projeto Supabase `cronos` (ref `ctrnutyicmuhnehauqcb`, sa-east-1, plano free: arquivos até 50 MB).
 
 ## Suposições e decisões pendentes
 

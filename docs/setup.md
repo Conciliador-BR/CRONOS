@@ -41,7 +41,9 @@
 | Revisão de segurança reutilizável | Copiado o bloco Prompt para `docs/prompts/security-review.md` | Projeto | Usado nas fases 1 e 2 |
 | Harness2 (método nativo) | Adotado como procedimento em `docs/quality.md` | Projeto | Sem falha observada que justificasse comparação |
 
-## Banco de dados (Supabase `cronos`, ref `cnwflsucwedbmfltbeht`, sa-east-1, plano free)
+## Banco de dados (Supabase `cronos`, ref `ctrnutyicmuhnehauqcb`, organização CRONOS, sa-east-1, plano free)
+
+O projeto foi criado primeiro na organização SORVETE (ref `cnwflsucwedbmfltbeht`) e recriado em 2026-10-23 na organização CRONOS, a pedido do Mateus, aplicando as mesmas migrations em ordem (contagem conferida: 26 tabelas, 59 políticas, 6 buckets, 20 triggers; advisors só com os avisos aceitos R-01/R-02). Os testes de RLS registrados em `docs/security.md` rodaram no projeto anterior, com o mesmo schema. O projeto antigo continua existindo até o Mateus decidir apagá-lo.
 
 Migrations aplicadas pelo MCP do Supabase (a versão remota é o horário da aplicação, não o nome local):
 

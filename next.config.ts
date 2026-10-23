@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    remotePatterns: [new URL("https://cnwflsucwedbmfltbeht.supabase.co/storage/v1/object/sign/**")],
+    remotePatterns: [new URL("https://ctrnutyicmuhnehauqcb.supabase.co/storage/v1/object/sign/**")],
   },
   async headers() {
     return [

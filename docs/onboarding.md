@@ -3,7 +3,7 @@
 ## Pré-requisitos
 
 - Node.js 22 (testado com 22.22) e pnpm 10 (`packageManager` em `package.json`).
-- Acesso ao projeto Supabase `cronos` (ref `cnwflsucwedbmfltbeht`) para obter chaves.
+- Acesso ao projeto Supabase `cronos` (ref `ctrnutyicmuhnehauqcb`) para obter chaves.
 
 ## Primeira execução
 

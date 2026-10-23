@@ -5,7 +5,7 @@ Revisão de segurança baseada em evidências. Este documento registra escopo, m
 ## Fase 1 — banco de dados (RLS, funções, triggers, Storage)
 
 - **Data:** 2026-10-23.
-- **Projeto:** Supabase `cronos` (ref `cnwflsucwedbmfltbeht`). Nenhum outro projeto da conta foi acessado.
+- **Projeto:** Supabase `cronos` (ref `ctrnutyicmuhnehauqcb`). Nenhum outro projeto da conta foi acessado.
 - **Escopo:** `supabase/migrations/*.sql` (schema inicial, `cronos_needs_setup`, `operacional_course_covers`) e o estado real do banco: políticas RLS de `public` e `storage.objects`, funções, triggers, grants, view `seller_performance` e buckets. Código da aplicação ficou para a fase 2; só `src/app/primeiro-acesso/actions.ts` e o uso de `avatar_path` foram lidos para avaliar dois achados.
 - **Fora do escopo:** configurações do painel de Auth (não acessíveis por SQL), Edge Functions (não há), logs e dados reais (o banco estava vazio).
 

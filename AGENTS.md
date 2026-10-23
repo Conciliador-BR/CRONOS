@@ -36,7 +36,7 @@ CRM interno (pt-BR) que une missões estilo Trello, agenda, documentação de AP
 - Toda escrita passa por Server Action com validação Zod e `requireMember`/`requireRole` de `@/lib/auth`. RLS no banco é a barreira final; nunca a desative.
 - `createAdminClient` (service role) só em ações de admin, depois de `requireRole(["admin"])`. Nada secreto em `NEXT_PUBLIC_*`.
 - Dinheiro em centavos (`lib/format/money.ts`). Datas em `timestamptz`.
-- Schema muda só por nova migration em `supabase/migrations/` (aditiva, revisada), aplicada no projeto `cronos` (`cnwflsucwedbmfltbeht`). Não reescreva migrations aplicadas.
+- Schema muda só por nova migration em `supabase/migrations/` (aditiva, revisada), aplicada no projeto `cronos` (`ctrnutyicmuhnehauqcb`). Não reescreva migrations aplicadas.
 - Arquivos até 350 linhas. Interface em português, acessível (teclado, foco visível, contraste, erros ao lado do campo).
 - Atualize o documento responsável junto com a mudança (produto, arquitetura, design, qualidade, setup).
 - Publicar, enviar mensagens a terceiros, gerar custo ou ação destrutiva exigem autorização.
