@@ -1,4 +1,5 @@
 import "server-only";
+import { blobMatches } from "@/lib/file-signature";
 import { logger } from "@/lib/logger";
 import type { createClient } from "@/lib/supabase/server";
 import { currentMonthStart } from "./form-utils";
@@ -18,6 +19,11 @@ export function readAvatar(formData: FormData): File | null | string {
 /** Envia a foto para avatars/<id>/avatar.<ext> e grava o caminho no perfil. */
 export async function saveAvatar(supabase: Supabase, profileId: string, file: File) {
   const ext = AVATAR_TYPES[file.type as keyof typeof AVATAR_TYPES];
+  const kind = ext === "jpg" ? "jpeg" : ext;
+  if (!(await blobMatches(file, kind))) {
+    logger.warn("configuracoes: foto com conteúdo diferente do tipo declarado");
+    return false;
+  }
   const path = `${profileId}/avatar.${ext}`;
   const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
   if (error) {

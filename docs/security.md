@@ -35,7 +35,7 @@ Resultado final (depois da migration). "erro 42501" é recusa por RLS ou privil�
 
 | # | Cenário | Esperado | Observado | Resultado |
 |---|---|---|---|---|
-| 1 | Primeiro usuário criado | admin ativo | admin ativo | Passou |
+| 1 | Primeiro usuário criado | admin ativo | admin ativo | Passou (regra substituída por S-05: agora só e-mail confirmado de `private.bootstrap_admins` vira admin) |
 | 2 | Convidado com `app_metadata.cronos_role = gestor` | gestor ativo | gestor ativo | Passou |
 | 3 | Convidado sem papel | funcionário ativo | funcionário ativo | Passou |
 | 4 | Cadastro sem convite | funcionário inativo | funcionário inativo | Passou |
@@ -167,11 +167,59 @@ Resultado final (depois da migration). "erro 42501" é recusa por RLS ou privil�
 
 ## Fase 2 — código da aplicação
 
-**Pendente.** Será feita depois que os módulos em `src/features/**` e `src/app/(app)/**` estiverem prontos. Pontos já anotados:
+- **Data:** 2026-10-23. **Modo:** revisão do repositório no commit `d89a1ca` (branch `claude/cronos-foundation`). Os arquivos do escopo não têm alterações locais; as alterações não commitadas do repositório são todas do módulo Operacional, fora do escopo.
+- **Escopo:** `src/lib/**`, `src/proxy.ts`, `src/app/{login,primeiro-acesso,auth}/**`, `src/app/(app)/**` (menos `operacional`), `src/features/{comercial,empresas,configuracoes,inicio,marketing}/**`, `src/components/**` (só para importações de servidor em componentes cliente) e `next.config.ts`.
+- **Fora do escopo (pendente):** `src/features/operacional/**` e `src/app/(app)/operacional/**`, ainda em escrita. Nessa revisão, conferir participantes da Agenda (S-04), `meeting_url` como `href`, uploads de `acquirer-docs` e `course-videos`.
+- **Método:** leitura manual de cada Server Action, route handler, consulta e componente cliente do escopo, e buscas direcionadas (`"use server"`, `"use client"` com importações de servidor, `createAdminClient`, `createSignedUrl*`, `dangerouslySetInnerHTML`, `href={…}`, `window.location`, `NEXT_PUBLIC_*`). Valores de `.env.local` não foram lidos (só os nomes; o arquivo é ignorado pelo Git e a chave service role está vazia). `pnpm exec tsc --noEmit` passou. Não rodei `next dev`/`build` nem testes dinâmicos contra o app; os achados abaixo vêm de análise estática, apoiada pelos testes de RLS da fase 1.
+- **Referência:** OWASP ASVS 5.0 usada só como lista de cobertura, sem citar requisitos.
 
-- Server Actions: `requireMember`/`requireRole` antes de qualquer escrita e validação Zod.
-- Uso de `createAdminClient` só depois de `requireRole(["admin"])`; nenhuma assinatura de URL com service role para caminhos vindos do usuário (R-03).
-- Geração de caminhos de upload no servidor; tipo e tamanho validados antes do envio.
-- `next` do login e do `/auth/callback` restrito a caminhos internos (redirecionamento aberto).
-- Agenda incluindo participantes com o cliente do criador (S-04).
-- Mensagens de erro sem stack nem detalhes do banco; nada sensível nos logs.
+### Conferido sem achado
+
+| Controle | Evidência |
+|---|---|
+| Toda Server Action começa com `requireMember`/`requireRole` e valida com Zod | `comercial/actions.ts` (6 ações), `configuracoes/{employee,company,client,team,document}-actions.ts`, `empresas/actions.ts`. Algumas validam o id antes da sessão (`deleteLead`, `setSalesGoal`, `loadLeadHistory`), sem efeito colateral. `login` e `createFirstAdmin` são públicas por natureza e validam com Zod |
+| Service role só depois de `requireRole(["admin"])` | `employee-actions.ts:35-62` (`createUser`, e `deleteUser` só para desfazer um cadastro pela metade) e `:157-162` (`updateUserById` para senha). Nenhum outro uso de `createAdminClient` |
+| Componente cliente sem módulo de servidor | Nenhum arquivo `"use client"` do escopo importa `@/lib/auth`, `supabase/server`, `supabase/admin`, `lib/env`, `lib/logger`, `queries` ou helpers `server-only`. Todos os `queries.ts` começam com `import "server-only"` |
+| Redirecionamento aberto | `login/safe-next.ts` aceita só `/caminho` e recusa `//`, `/\` e caracteres de controle; usado em `login/actions.ts:47`, `login/page.tsx:18` e `auth/callback/route.ts:12`. O proxy grava em `next` só o `pathname` |
+| IDOR em linhas filhas de empresa | `company-children.ts:67-79`: ids vindos do navegador só são atualizados se já pertencem à empresa, e todo `update`/`delete` filtra também por `company_id`. Os arrays têm teto (`company-schemas.ts:81-82`) |
+| Upload de PDF | Caminho gerado no servidor (`document-actions.ts:47`, `<empresa>/<uuid>-<nome-sanitizado>.pdf`), token de envio assinado, registro só depois de conferir tamanho e tipo no Storage (`:74-80`) e o caminho contra `PATH_PATTERN` e o prefixo da empresa |
+| Validade das URLs assinadas | PDF: 60 s com `download` (`empresas/actions.ts:26`); avatares: 1 h (`comercial/queries.ts:17`, `configuracoes/queries.ts:204`) |
+| Dados restritos para funcionário | `empresas/queries.ts:76-89,119` só consulta contas e PDFs quando é gestor; a RLS também bloqueia (fase 1, testes 16 e 34). Páginas de Configurações chamam `requireRole` nas consultas (`configuracoes/queries.ts`) |
+| XSS | Nenhum `dangerouslySetInnerHTML` no escopo. Nenhum `href` montado com dado do usuário (e-mail e telefone de lead/cliente são exibidos como texto). Links externos fixos usam `rel="noreferrer"` |
+| Mensagens e logs | Erros ao usuário são genéricos; o log registra `code`/`message` do Postgres ou do Storage, sem payload nem dados pessoais. O Pino redige senha, token, cookie e authorization. `error.tsx` mostra só o `digest` |
+| Variáveis de ambiente | Só `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` são públicas; `SUPABASE_SERVICE_ROLE_KEY` é lida só em `lib/env.ts` (`server-only`). `.env.local` é ignorado pelo Git; só `.env.example` (sem valores) é versionado |
+| Sessão | O proxy renova a sessão com `getClaims()` e manda anônimos para `/login`; `requireMember` confere `active` a cada requisição, então desativar alguém corta o acesso na próxima requisição mesmo com JWT válido |
+
+### Achados
+
+| ID | Título | Severidade | Status |
+|---|---|---|---|
+| P2-01 | Textos do primeiro acesso prometem admin a qualquer cadastro | Baixa | Aberto |
+| P2-02 | Sem cabeçalhos de segurança (clickjacking, nosniff) | Baixa | Aberto |
+| P2-03 | Logout por POST sem checar a origem (CSRF de logout) | Baixa | Aberto |
+| P2-04 | Conteúdo de PDF e avatar não conferido pelos bytes | Baixa | Aberto |
+| P2-05 | Redefinir senha não encerra sessões abertas | Baixa | Aberto |
+| P2-06 | `emailRedirectTo` montado a partir do cabeçalho `Origin` | Informativa | Aberto |
+
+**P2-01 — Textos do primeiro acesso (Baixa, confirmado).** Depois de S-05, só um e-mail confirmado de `private.bootstrap_admins` vira admin, mas a interface diz o contrário: `src/app/primeiro-acesso/page.tsx:17` ("Crie a conta do administrador. Ela terá acesso total…"), `setup-form.tsx:75` (botão "Criar administrador"), `src/app/login/page.tsx:31` (link "Criar o administrador") e o comentário desatualizado de `needs-setup.ts:5` ("não existe nenhum usuário"). Cenário: enquanto não há admin ativo, qualquer visitante (ou o dono com um e-mail digitado errado) cria a conta achando que é admin, confirma o e-mail e recebe "Seu acesso ainda não foi liberado", sem explicação. Não há escalada, mas o texto engana e gera contas inativas. Correção: descrição "Use o e-mail autorizado do responsável pelo CRONOS. Outros cadastros ficam aguardando liberação."; botão "Criar conta"; link "Primeiro acesso do responsável"; no estado `verify`, avisar que o acesso de admin só vale para o e-mail autorizado; comentário: "true enquanto não houver admin ativo".
+
+**P2-02 — Cabeçalhos de segurança (Baixa, confirmado por leitura).** `next.config.ts` não define `headers()`, então nenhuma resposta envia `X-Frame-Options`/`frame-ancestors`, `X-Content-Type-Options` ou `Referrer-Policy`. Cenário: um site externo carrega `/configuracoes/funcionarios` num iframe invisível e induz um admin logado a clicar no interruptor de acesso ou em "Excluir" (clickjacking). Os diálogos de confirmação dificultam, mas não impedem. Correção em `next.config.ts`: `async headers() { return [{ source: "/:path*", headers: [{ key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: "frame-ancestors 'none'" }, { key: "X-Content-Type-Options", value: "nosniff" }, { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }, { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }] }]; }`. Uma CSP completa (scripts) pode vir depois, com nonce.
+
+**P2-03 — CSRF de logout (Baixa, confirmado por leitura).** `src/app/auth/signout/route.ts:6-11` encerra a sessão em qualquer POST. Route handlers não têm a checagem de origem das Server Actions. Cenário: uma página externa com `<form method="post" action="https://<site>/auth/signout">` enviado automaticamente desloga quem a abre. O impacto é só incômodo. Correção: no início do handler, `const origin = request.headers.get("origin"); if (origin && origin !== request.nextUrl.origin) return new NextResponse(null, { status: 403 });` (ou trocar por uma Server Action).
+
+**P2-04 — Conteúdo dos arquivos (Baixa, precisa de validação).** O PDF é enviado com `contentType: "application/pdf"` fixo no navegador (`company-documents.tsx:33`), e o servidor confere só o `contentType` gravado no Storage (`document-actions.ts:76-77`), que é o declarado pelo cliente. No avatar, `people-helpers.ts:13` confia em `file.type`. Pré-requisito: ser gestor (PDF) ou admin (avatar), então o risco é baixo. Impacto: um arquivo que não é PDF (por exemplo, HTML) fica registrado como documento. Ele é servido pelo domínio do Storage, com `download`, fora da origem do app. Correção: em `registerCompanyDocument`, baixar o objeto (até 20 MB) ou os primeiros bytes e exigir que comece com `%PDF-`; em `readAvatar`, ler `await file.slice(0, 12).arrayBuffer()` e conferir a assinatura de PNG (`89 50 4E 47`), JPEG (`FF D8 FF`) ou WebP (`RIFF....WEBP`).
+
+**P2-05 — Sessões após redefinir senha (Baixa, precisa de validação).** `resetEmployeePassword` (`employee-actions.ts:156-169`) troca a senha com `updateUserById`, mas sessões e refresh tokens existentes continuam valendo. Se a senha foi redefinida porque vazou, quem já entrou continua logado. Desativar a conta (`setEmployeeActive`) corta o acesso de verdade, porque `requireMember` e a RLS conferem `active`. Correção: orientar na interface "para expulsar alguém, desative o acesso", ou criar uma função `security definer` só para admin que apague `auth.sessions` do usuário (`delete from auth.sessions where user_id = $1`, com `has_role(['admin'])`) e chamá-la depois da troca de senha.
+
+**P2-06 — `emailRedirectTo` a partir de `Origin` (Informativa).** `primeiro-acesso/actions.ts:46,53` monta o link de confirmação com o cabeçalho `Origin`. Só quem faz o próprio cadastro controla esse valor, o Next confere `Origin` contra o host nas Server Actions e o Supabase só aceita destinos da lista de Redirect URLs. Endurecimento: usar uma variável de servidor (`SITE_URL`) validada em `lib/env.ts`.
+
+### Observações (sem ação agora)
+
+- `getLeadSourceStats`, `getOpenLeadsCount` e `getLeadHistory` (`comercial/queries.ts`) não chamam `requireMember` e dependem da RLS e dos chamadores (páginas sob o layout `(app)` e `loadLeadHistory`). Se alguma for usada fora desse contexto, adicionar a checagem.
+- `next.config.ts` libera o otimizador de imagens para `…/storage/v1/object/sign/**`. Ele só busca URLs assinadas que o servidor já gerou; o cache fica atrelado à URL com token.
+- `requireRole` lança `Error("Acesso negado")`; em produção o Next substitui a mensagem por um `digest`, sem vazar detalhes.
+
+### Próxima validação
+
+- Revisar o módulo Operacional quando estiver pronto (itens em "Fora do escopo").
+- Depois de corrigir P2-02 e P2-03, conferir os cabeçalhos com `curl -I` no ambiente local e um POST de outra origem em `/auth/signout`.

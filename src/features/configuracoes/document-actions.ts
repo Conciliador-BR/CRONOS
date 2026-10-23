@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
+import { blobMatches } from "@/lib/file-signature";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./action-result";
@@ -77,6 +78,12 @@ export async function registerCompanyDocument(
   if (infoError || !info || size <= 0 || size > MAX_PDF_BYTES || contentType !== "application/pdf") {
     await storage.remove([upload.path]);
     return { ok: false, error: infoError ? "O arquivo não chegou ao armazenamento." : "Envie um PDF de até 20 MB." };
+  }
+
+  const { data: head } = await storage.download(upload.path);
+  if (!head || !(await blobMatches(head, "pdf"))) {
+    await storage.remove([upload.path]);
+    return { ok: false, error: "O arquivo enviado não é um PDF válido." };
   }
 
   const { error } = await supabase.from("company_documents").insert({

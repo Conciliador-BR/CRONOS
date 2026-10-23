@@ -28,7 +28,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <>
             Primeira vez por aqui?{" "}
             <Link href="/primeiro-acesso" className="font-medium text-ring underline-offset-4 hover:underline">
-              Criar o administrador
+              Primeiro acesso do responsável
             </Link>
           </>
         ) : (

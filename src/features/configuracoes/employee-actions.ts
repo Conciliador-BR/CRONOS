@@ -165,7 +165,7 @@ export async function resetEmployeePassword(profileId: string, formData: FormDat
     if (error.code === "weak_password") return invalid({ password: ["Senha fraca. Use letras e números."] });
     return { ok: false, error: "Não foi possível redefinir a senha." };
   }
-  return { ok: true, message: "Senha redefinida. Informe a nova senha ao funcionário." };
+  return { ok: true, message: "Senha redefinida. Sessões já abertas continuam válidas até expirar; para desconectar na hora, desative o acesso." };
 }
 
 /** Admin ou gestor define a meta do mês corrente (vazio remove). */

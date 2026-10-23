@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * true quando ainda não existe nenhum usuário (RPC public.cronos_needs_setup).
+ * true enquanto não houver admin ativo (RPC public.cronos_needs_setup).
  * Em erro, retorna false: na dúvida, o primeiro acesso fica fechado.
  */
 export async function needsSetup(): Promise<boolean> {

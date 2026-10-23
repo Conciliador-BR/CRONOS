@@ -72,7 +72,7 @@ export function SetupForm() {
       </Field>
 
       <Button type="submit" size="lg" loading={pending} className="mt-2 w-full">
-        {pending ? "Criando conta…" : "Criar administrador"}
+        {pending ? "Criando conta…" : "Criar conta"}
       </Button>
     </form>
   );

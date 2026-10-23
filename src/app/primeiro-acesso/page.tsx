@@ -14,7 +14,7 @@ export default async function FirstAccessPage() {
       title="Primeiro acesso"
       description={
         open
-          ? "Crie a conta do administrador. Ela terá acesso total e cadastrará os demais funcionários."
+          ? "Use o e-mail autorizado do responsável pelo CRONOS. Depois de confirmar o e-mail, essa conta vira administradora. Outros cadastros ficam aguardando liberação."
           : undefined
       }
       footer={
