@@ -3,6 +3,8 @@
 /*
  * Identidade CRONOS: preto e azul. Tema escuro único.
  * Os NOMES dos tokens são contrato entre módulos; ajuste valores, não nomes.
+ * Contrastes (WCAG): fg/bg 17:1, muted/bg 7:1, muted/surface-2 5.9:1,
+ * primary-fg/primary 5.2:1, danger/bg 5.3:1. Ver docs/design.md.
  */
 :root {
   --bg: #05070d;
@@ -41,10 +43,44 @@
   --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --animate-fade-in: cronos-fade-in 150ms ease-out;
+  --animate-pop-in: cronos-pop-in 160ms ease-out;
+  --animate-slide-in-left: cronos-slide-in-left 200ms ease-out;
+  --animate-slide-in-right: cronos-slide-in-right 200ms ease-out;
+}
+
+@keyframes cronos-fade-in {
+  from { opacity: 0; }
+}
+@keyframes cronos-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+@keyframes cronos-slide-in-left {
+  from { transform: translateX(-100%); }
+}
+@keyframes cronos-slide-in-right {
+  from { transform: translateX(100%); }
+}
+
+html {
+  scrollbar-color: var(--surface-3) var(--bg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Modal/Drawer abertos travam a rolagem da página. */
+html:has(dialog[open]:modal) {
+  overflow: hidden;
 }
 
 body {
   background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 45%, transparent);
   color: var(--fg);
 }
 
@@ -53,9 +89,16 @@ body {
   outline-offset: 2px;
 }
 
+dialog::backdrop {
+  background: rgb(2 4 10 / 0.72);
+  backdrop-filter: blur(2px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

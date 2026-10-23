@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  images: {
+    remotePatterns: [new URL("https://cnwflsucwedbmfltbeht.supabase.co/storage/v1/object/sign/**")],
+  },
   experimental: {
     serverActions: { bodySizeLimit: "25mb" },
   },
