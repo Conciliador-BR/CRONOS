@@ -33,6 +33,9 @@ src/features/configuracoes/
   - Salvar empresa (`company-actions.ts`): valida (Zod, CNPJ com dígito verificador e único), cria o cliente novo, a empresa e depois ECs/contas. Na criação, se uma parte falhar tudo é desfeito; na edição as linhas filhas são sincronizadas (atualiza, insere e só então remove) e a mensagem diz o que não foi salvo.
   - PDFs (`document-actions.ts`): o servidor valida tipo/tamanho e gera o caminho `<empresa>/<uuid>-<nome>.pdf` e um token de envio; o navegador envia direto ao Storage (o proxy só bufferiza 10 MB do corpo); o servidor confere tamanho e tipo no Storage antes de registrar.
   - CEP: ViaCEP consultado no navegador ao completar 8 dígitos; falha só mostra aviso.
+  - CNAE (7 dígitos, máscara 0000-0/00) e descrição; "Buscar pelo CNPJ" (`lookup-actions.ts` → BrasilAPI, 8 s, resposta validada em `lookup-parsers.ts`) preenche nomes, CNAE e endereço para revisão.
+  - Matriz/filial (`branch-fields.tsx`): a ação repete a regra do trigger `check_company_parent` (um nível só) e traduz o erro 23514. A lista agrupa filiais sob a matriz (`branches.ts`).
+  - Localização (`location-fields.tsx`, `location-map.tsx`): "Localizar no mapa" tenta BrasilAPI CEP v2 e depois Nominatim (OpenStreetMap); pino arrastável; grava latitude/longitude com 6 casas.
 - `/configuracoes/funcionarios` (`employee-actions.ts`): admin cria login (service role, só após `requireRole(["admin"])`), edita, ativa/desativa, redefine senha; gestor vê e define metas. Sem `SUPABASE_SERVICE_ROLE_KEY`, a página avisa e desabilita criação/senha.
 - `/configuracoes/times` (`team-actions.ts`): CRUD com contagem de membros.
-- Ações devolvem `ActionResult` (`action-result.ts`). Lógica pura testada: `form-utils.test.ts`, `company-schemas.test.ts`, `people-schemas.test.ts`.
+- Ações devolvem `ActionResult` (`action-result.ts`). Lógica pura testada: `form-utils.test.ts`, `company-schemas.test.ts`, `people-schemas.test.ts`, `lookup-parsers.test.ts`, `branches.test.ts`.

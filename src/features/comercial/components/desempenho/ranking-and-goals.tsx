@@ -37,6 +37,7 @@ export function SellerRanking({ sellers, monthLabel }: { sellers: SellerPerforma
                   <span className="block truncate text-sm font-medium">{seller.name}</span>
                   <span className="block text-xs text-muted">
                     {seller.wonCount} {seller.wonCount === 1 ? "negócio" : "negócios"}
+                    {seller.lostCount > 0 ? ` · ${seller.lostCount} ${seller.lostCount === 1 ? "perdido" : "perdidos"}` : ""}
                     {seller.teamName ? ` · ${seller.teamName}` : ""}
                   </span>
                 </span>

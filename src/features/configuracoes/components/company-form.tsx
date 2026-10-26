@@ -7,17 +7,18 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { formatCnpj } from "@/lib/format/document";
 import { formatCep } from "@/features/empresas/format";
 import type { ActionResult } from "../action-result";
 import { createCompany, updateCompany } from "../company-actions";
-import type { ClientOption, CompanyFormData } from "../queries";
-import { AddressFields } from "./address-fields";
+import type { CnpjPrefill } from "../lookup-parsers";
+import type { ClientOption, CompanyFormData, MatrizOption } from "../queries";
+import { AddressFields, type AddressValues } from "./address-fields";
 import { BankFields } from "./bank-fields";
+import { BranchFields } from "./branch-fields";
 import { ClientPicker } from "./client-picker";
 import { EcFields } from "./ec-fields";
+import { IdentityFields } from "./identity-fields";
+import { LocationFields } from "./location-fields";
 
 function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
@@ -31,13 +32,52 @@ function Section({ title, description, children }: { title: string; description?
   );
 }
 
-/** Cadastro/edição de empresa com endereço, ECs, contas e cliente. */
-export function CompanyForm({ company, clientOptions }: { company: CompanyFormData | null; clientOptions: ClientOption[] }) {
+/** Cadastro/edição de empresa com CNAE, matriz/filial, endereço, localização, ECs, contas e cliente. */
+export function CompanyForm({
+  company,
+  clientOptions,
+  matrizOptions,
+}: {
+  company: CompanyFormData | null;
+  clientOptions: ClientOption[];
+  matrizOptions: MatrizOption[];
+}) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
-  const [cnpj, setCnpj] = useState(formatCnpj(company?.cnpj ?? ""));
+  const formRef = useRef<HTMLFormElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
   const errors = result && !result.ok ? result.fieldErrors : undefined;
+  // O endereço é recriado (key) quando a busca pelo CNPJ traz um endereço novo.
+  const [address, setAddress] = useState<{ key: number; values: AddressValues }>(() => ({
+    key: 0,
+    values: {
+      cep: formatCep(company?.cep),
+      street: company?.street ?? "",
+      number: company?.number ?? "",
+      complement: company?.complement ?? "",
+      district: company?.district ?? "",
+      city: company?.city ?? "",
+      uf: company?.uf ?? "",
+    },
+  }));
+
+  /** Mescla o endereço da BrasilAPI com o que já foi digitado (campo vazio na resposta não apaga). */
+  function applyAddress(found: CnpjPrefill["address"]) {
+    const data = formRef.current ? new FormData(formRef.current) : null;
+    const current = (name: keyof AddressValues) => String(data?.get(name) ?? "");
+    setAddress((prev) => ({
+      key: prev.key + 1,
+      values: {
+        cep: formatCep(found.cep) || current("cep"),
+        street: found.street || current("street"),
+        number: found.number || current("number"),
+        complement: found.complement || current("complement"),
+        district: found.district || current("district"),
+        city: found.city || current("city"),
+        uf: found.uf || current("uf"),
+      },
+    }));
+  }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,7 +90,7 @@ export function CompanyForm({ company, clientOptions }: { company: CompanyFormDa
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
       <div ref={alertRef} tabIndex={-1} className="outline-none empty:hidden">
         {result && !result.ok ? (
           <Alert tone="danger" title="Não foi possível salvar">
@@ -61,42 +101,39 @@ export function CompanyForm({ company, clientOptions }: { company: CompanyFormDa
       </div>
 
       <Section title="Dados da empresa">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="company-cnpj" label="CNPJ" required error={errors?.cnpj}>
-            <Input
-              name="cnpj"
-              value={cnpj}
-              onChange={(e) => setCnpj(formatCnpj(e.target.value))}
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="00.000.000/0000-00"
-              autoFocus={!company}
-            />
-          </Field>
-          <Field id="company-market" label="Nome do mercado" error={errors?.marketName} hint="Aparece no mapa de Empresas.">
-            <Input name="marketName" defaultValue={company?.marketName ?? ""} maxLength={200} autoComplete="off" />
-          </Field>
-          <Field id="company-legal" label="Razão social" required error={errors?.legalName}>
-            <Input name="legalName" defaultValue={company?.legalName ?? ""} maxLength={200} autoComplete="off" />
-          </Field>
-          <Field id="company-trade" label="Nome fantasia" error={errors?.tradeName}>
-            <Input name="tradeName" defaultValue={company?.tradeName ?? ""} maxLength={200} autoComplete="off" />
-          </Field>
-        </div>
+        <IdentityFields
+          initial={{
+            cnpj: company?.cnpj ?? "",
+            legalName: company?.legalName ?? "",
+            tradeName: company?.tradeName ?? "",
+            marketName: company?.marketName ?? "",
+            cnae: company?.cnae ?? "",
+            cnaeDescription: company?.cnaeDescription ?? "",
+          }}
+          errors={errors}
+          autoFocus={!company}
+          onAddressFound={applyAddress}
+        />
       </Section>
 
-      <Section title="Endereço" description="A UF posiciona a empresa no mapa.">
-        <AddressFields
+      <Section title="Matriz ou filial" description="Filiais aparecem agrupadas sob a matriz.">
+        <BranchFields
+          options={matrizOptions}
+          initialParentId={company?.parentCompanyId ?? null}
+          branchCount={company?.branchCount ?? 0}
           errors={errors}
-          initial={{
-            cep: formatCep(company?.cep),
-            street: company?.street ?? "",
-            number: company?.number ?? "",
-            complement: company?.complement ?? "",
-            district: company?.district ?? "",
-            city: company?.city ?? "",
-            uf: company?.uf ?? "",
-          }}
+        />
+      </Section>
+
+      <Section title="Endereço" description="A UF e a localização posicionam o mercado no mapa.">
+        <AddressFields key={address.key} errors={errors} initial={address.values} />
+      </Section>
+
+      <Section title="Localização no mapa" description="Opcional. Sem coordenadas, o mercado aparece perto do centro do estado.">
+        <LocationFields
+          initial={{ latitude: company?.latitude ?? null, longitude: company?.longitude ?? null }}
+          initialUf={company?.uf ?? null}
+          errors={errors}
         />
       </Section>
 

@@ -1,4 +1,5 @@
 import type { DealType } from "../constants";
+import { countLostByOwner, lossRate, lostInMonth, type LostDeal } from "./lost";
 import { lastMonths, monthStartDate, toMonthKey, type MonthKey } from "./months";
 import { averageTicketCents, commissionCents, goalProgress, rankSellers, type GoalProgress } from "./ranking";
 
@@ -22,7 +23,13 @@ export type ClosedDeal = {
 
 export type GoalRow = { profileId: string; month: string; goalCents: number };
 
-export type MonthlyPoint = { month: MonthKey; revenueCents: number; goalCents: number | null; wonCount: number };
+export type MonthlyPoint = {
+  month: MonthKey;
+  revenueCents: number;
+  goalCents: number | null;
+  wonCount: number;
+  lostCount: number;
+};
 
 export type Conversion = Pick<ClosedDeal, "id" | "name" | "companyName" | "dealType" | "dealValueCents" | "closedAt">;
 
@@ -30,6 +37,10 @@ export type SellerPerformance = PerformanceMember & {
   position: number;
   revenueCents: number;
   wonCount: number;
+  /** Clientes perdidos no mês escolhido. */
+  lostCount: number;
+  /** Perdidos ÷ (ganhos + perdidos) no mês; null sem negócios decididos. */
+  lossRate: number | null;
   commissionCents: number;
   goalCents: number | null;
   progress: GoalProgress;
@@ -46,23 +57,35 @@ export type PerformanceKpis = {
   activeMembers: number;
   dealsClosed: number;
   averageTicketCents: number;
+  lostCount: number;
+  lossRate: number | null;
 };
 
-export type PerformanceSummary = { month: MonthKey; kpis: PerformanceKpis; sellers: SellerPerformance[] };
+export type PerformanceSummary = {
+  month: MonthKey;
+  kpis: PerformanceKpis;
+  sellers: SellerPerformance[];
+  /** Clientes perdidos no mês (inclusive de quem saiu da equipe), do mais recente ao mais antigo. */
+  lostClients: LostDeal[];
+};
 
 /**
  * Desempenho do mês: KPIs, ranking por receita, meta x realizado e série de 12 meses.
  * O faturamento soma todos os negócios fechados no mês (inclusive de quem saiu da equipe);
- * o ranking considera só funcionários ativos.
+ * o ranking considera só funcionários ativos. Perdas (`lost`) seguem a mesma regra, pela data em que o lead foi perdido.
  */
 export function buildPerformance(input: {
   month: MonthKey;
   members: readonly PerformanceMember[];
   deals: readonly ClosedDeal[];
   goals: readonly GoalRow[];
+  lost?: readonly LostDeal[];
   historyMonths?: number;
 }): PerformanceSummary {
   const { month, members, deals, goals } = input;
+  const lost = input.lost ?? [];
+  const lostByOwner = countLostByOwner(lost);
+  const lostClients = lostInMonth(lost, month);
   const window = lastMonths(month, input.historyMonths ?? 12);
   const windowSet = new Set<string>(window);
 
@@ -104,10 +127,14 @@ export function buildPerformance(input: {
     const acc = byOwner.get(member.id) as Acc;
     const current = acc.monthly.get(month) ?? { revenue: 0, won: 0 };
     const goalCents = goalByKey.get(`${member.id}|${month}`) ?? null;
+    const lostMonths = lostByOwner.get(member.id);
+    const lostCount = lostMonths?.get(month) ?? 0;
     return {
       ...member,
       revenueCents: current.revenue,
       wonCount: current.won,
+      lostCount,
+      lossRate: lossRate(current.won, lostCount),
       commissionCents: commissionCents(current.revenue, member.commissionRate),
       goalCents,
       progress: goalProgress(current.revenue, goalCents),
@@ -115,6 +142,7 @@ export function buildPerformance(input: {
         month: m,
         revenueCents: acc.monthly.get(m)?.revenue ?? 0,
         wonCount: acc.monthly.get(m)?.won ?? 0,
+        lostCount: lostMonths?.get(m) ?? 0,
         goalCents: goalByKey.get(`${member.id}|${m}`) ?? null,
       })),
       conversions: acc.conversions.toSorted((a, b) => b.closedAt.localeCompare(a.closedAt)),
@@ -130,8 +158,11 @@ export function buildPerformance(input: {
       activeMembers: members.length,
       dealsClosed,
       averageTicketCents: averageTicketCents(revenueCents, dealsClosed),
+      lostCount: lostClients.length,
+      lossRate: lossRate(dealsClosed, lostClients.length),
     },
     sellers: rankSellers(rows),
+    lostClients,
   };
 }
 

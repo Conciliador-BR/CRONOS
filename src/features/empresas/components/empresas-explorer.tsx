@@ -1,17 +1,15 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Building2, MapPinned, Search, SearchX } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
+import { Search } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { UF_NAMES, type Uf } from "../brazil-states";
-import { companiesLabel, groupByUf, searchCompanies, type CompanySummary } from "../map-utils";
-import { BrazilMap } from "./brazil-map";
-import { MapLegend } from "./map-legend";
-import { MarketList } from "./market-list";
+import { UF_NAMES, toUf, type Uf } from "../brazil-states";
+import { companiesToGeoJson } from "../geo";
+import { companiesLabel, groupByUf, marketLabel, searchCompanies, type CompanySummary } from "../map-utils";
+import { CompanyMap, type MapCommand } from "./company-map";
+import { ExplorerPanel } from "./explorer-panel";
 
 type ExplorerProps = {
   companies: CompanySummary[];
@@ -19,7 +17,9 @@ type ExplorerProps = {
   activeCompanyId: string | null;
 };
 
-/** Mapa + painel lateral (resumo, mercados do estado ou resultados da busca). */
+type CommandInput = MapCommand extends infer C ? (C extends unknown ? Omit<C, "key"> : never) : never;
+
+/** Mapa (MapLibre) + painel lateral (busca, resumo e mercados do estado). */
 export function EmpresasExplorer({ companies, initialUf, activeCompanyId }: ExplorerProps) {
   const router = useRouter();
   const [selectedUf, setSelectedUf] = useState<Uf | null>(initialUf);
@@ -27,73 +27,100 @@ export function EmpresasExplorer({ companies, initialUf, activeCompanyId }: Expl
   const deferredQuery = useDeferredValue(query);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [command, setCommand] = useState<MapCommand | null>(null);
+  const commandKey = useRef(0);
 
   const groups = useMemo(() => groupByUf(companies), [companies]);
-  const counts = useMemo(() => {
-    const result: Partial<Record<Uf, number>> = {};
-    for (const [uf, list] of groups) result[uf] = list.length;
-    return result;
-  }, [groups]);
   const ranking = useMemo(
     () => [...groups.entries()].map(([uf, list]) => ({ uf, count: list.length })).sort((a, b) => b.count - a.count),
     [groups],
   );
-  const max = ranking[0]?.count ?? 0;
   const results = useMemo(() => searchCompanies(companies, deferredQuery), [companies, deferredQuery]);
+  const geo = useMemo(() => companiesToGeoJson(companies), [companies]);
+  const byId = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
+  const parentNames = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const c of companies) if (c.parentId && byId.has(c.parentId)) names.set(c.parentId, marketLabel(byId.get(c.parentId)!));
+    return names;
+  }, [companies, byId]);
+
+  function send(next: CommandInput) {
+    commandKey.current += 1;
+    setCommand({ ...next, key: commandKey.current } as MapCommand);
+  }
 
   function selectUf(uf: Uf | null) {
     setSelectedUf(uf);
     // Mantém a UF na URL sem nova requisição (permite compartilhar o link).
     window.history.replaceState(null, "", uf ? `/empresas?uf=${uf}` : "/empresas");
+    send(uf ? { kind: "uf", uf } : { kind: "brazil" });
   }
 
   function openCompany(company: CompanySummary) {
-    const uf = selectedUf ?? company.uf;
+    const uf = toUf(company.uf) ?? selectedUf;
+    if (uf && uf !== selectedUf) setSelectedUf(uf);
     setPendingId(company.id);
     startTransition(() => {
-      router.push(`/empresas?uf=${uf}&empresa=${company.id}`, { scroll: false });
+      router.push(`/empresas?${uf ? `uf=${uf}&` : ""}empresa=${company.id}`, { scroll: false });
     });
   }
 
-  const byId = (id: string) => companies.find((c) => c.id === id);
-  const onOpen = (id: string) => {
-    const company = byId(id);
+  /** Clique no pino: o mapa já está no lugar, só abre o card. */
+  function openFromMap(id: string) {
+    const company = byId.get(id);
     if (company) openCompany(company);
-  };
-  const shownPendingId = isPending ? pendingId : null;
+  }
+
+  /** Clique na lista: voa até o pino e abre o card. */
+  function openFromList(id: string) {
+    const company = byId.get(id);
+    if (!company) return;
+    send({ kind: "company", id });
+    openCompany(company);
+  }
+
   const stateCompanies = selectedUf ? (groups.get(selectedUf) ?? []) : [];
   const searching = deferredQuery.trim().length > 0;
+  const exact = companies.length - geo.approximateCount - geo.unplaced.length;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
-      <Card className="flex flex-col gap-4 p-4 sm:p-6">
-        <BrazilMap counts={counts} max={max} selectedUf={selectedUf} onSelect={selectUf} />
-        <MapLegend max={max} />
-        <p className="text-[11px] text-muted">
-          Mapa:{" "}
-          <a
-            className="underline underline-offset-2 hover:text-fg"
-            href="https://github.com/VictorCazanave/svg-maps/tree/master/packages/brazil"
-            target="_blank"
-            rel="noreferrer"
-          >
-            @svg-maps/brazil
-          </a>{" "}
-          (Victor Cazanave), baseado em{" "}
-          <a className="underline underline-offset-2 hover:text-fg" href="https://mapsvg.com/maps/brazil" target="_blank" rel="noreferrer">
-            MapSVG
-          </a>
-          , licença{" "}
-          <a
-            className="underline underline-offset-2 hover:text-fg"
-            href="https://creativecommons.org/licenses/by/4.0/deed.pt-br"
-            target="_blank"
-            rel="noreferrer"
-          >
-            CC BY 4.0
-          </a>
-          . Cores e interação adaptadas.
-        </p>
+      <Card className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
+        <CompanyMap
+          collection={geo.collection}
+          initialUf={initialUf}
+          selectedUf={selectedUf}
+          activeCompanyId={activeCompanyId}
+          command={command}
+          onSelectUf={(uf) => selectUf(uf)}
+          onOpenCompany={openFromMap}
+        />
+        <div className="flex flex-col gap-2 px-1 text-xs text-muted">
+          <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5" aria-label="Legenda do mapa">
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-2.5 rounded-full bg-ring shadow-[0_0_8px_2px_rgb(56_189_248/0.6)]" />
+              Local exato
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="size-2.5 rounded-full border-2 border-ring" />
+              Local aproximado (sem coordenadas)
+            </li>
+            <li className="flex items-center gap-1.5">
+              <span aria-hidden className="grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-semibold text-primary-fg">
+                3
+              </span>
+              Grupo: clique para aproximar
+            </li>
+          </ul>
+          <p>Role o mouse ou use + e − para aproximar até a rua. Clique num estado para entrar nele.</p>
+          {geo.approximateCount > 0 ? (
+            <p>
+              {companiesLabel(geo.approximateCount)} sem coordenadas {geo.approximateCount === 1 ? "aparece" : "aparecem"} perto
+              do centro do estado. Em Configurações → Empresas, use “Localizar no mapa”.
+            </p>
+          ) : null}
+          {geo.unplaced.length > 0 ? <p>{companiesLabel(geo.unplaced.length)} sem localização (UF inválida).</p> : null}
+        </div>
       </Card>
 
       <div className="flex min-w-0 flex-col gap-4">
@@ -111,14 +138,18 @@ export function EmpresasExplorer({ companies, initialUf, activeCompanyId }: Expl
           />
         </div>
 
-        <dl className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-border bg-surface px-4 py-3">
-            <dt className="text-xs text-muted">Empresas cadastradas</dt>
+        <dl className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl border border-border bg-surface px-3 py-3">
+            <dt className="text-xs text-muted">Empresas</dt>
             <dd className="text-2xl font-semibold text-fg tabular-nums">{companies.length}</dd>
           </div>
-          <div className="rounded-xl border border-border bg-surface px-4 py-3">
-            <dt className="text-xs text-muted">Estados atendidos</dt>
+          <div className="rounded-xl border border-border bg-surface px-3 py-3">
+            <dt className="text-xs text-muted">Estados</dt>
             <dd className="text-2xl font-semibold text-fg tabular-nums">{groups.size}</dd>
+          </div>
+          <div className="rounded-xl border border-border bg-surface px-3 py-3">
+            <dt className="text-xs text-muted">No local exato</dt>
+            <dd className="text-2xl font-semibold text-fg tabular-nums">{exact}</dd>
           </div>
         </dl>
 
@@ -129,85 +160,19 @@ export function EmpresasExplorer({ companies, initialUf, activeCompanyId }: Expl
               ? `${UF_NAMES[selectedUf]}: ${companiesLabel(stateCompanies.length)}`
               : ""}
         </p>
-        <Card>
-          {searching ? (
-            <>
-              <CardHeader>
-                <CardTitle as="h2">Resultados da busca</CardTitle>
-                <p className="text-sm text-muted">{companiesLabel(results.length)}</p>
-              </CardHeader>
-              <CardContent>
-                {results.length === 0 ? (
-                  <EmptyState icon={SearchX} title="Nada encontrado" description="Tente outro nome, cidade ou CNPJ." />
-                ) : (
-                  <MarketList companies={results} withUf pendingId={shownPendingId} activeId={activeCompanyId} onOpen={onOpen} />
-                )}
-              </CardContent>
-            </>
-          ) : selectedUf ? (
-            <>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <CardTitle as="h2">{UF_NAMES[selectedUf]}</CardTitle>
-                    <p className="text-sm text-muted">Mercados atendidos · {companiesLabel(stateCompanies.length)}</p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => selectUf(null)}>
-                    <ArrowLeft aria-hidden />
-                    Todos
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {stateCompanies.length === 0 ? (
-                  <EmptyState
-                    icon={MapPinned}
-                    title="Nenhum mercado neste estado"
-                    description="Empresas cadastradas em Configurações aparecem aqui."
-                  />
-                ) : (
-                  <MarketList
-                    companies={stateCompanies}
-                    pendingId={shownPendingId}
-                    activeId={activeCompanyId}
-                    onOpen={onOpen}
-                  />
-                )}
-              </CardContent>
-            </>
-          ) : (
-            <>
-              <CardHeader>
-                <CardTitle as="h2">Estados atendidos</CardTitle>
-                <p className="text-sm text-muted">Clique num estado no mapa ou na lista para ver os mercados.</p>
-              </CardHeader>
-              <CardContent>
-                {ranking.length === 0 ? (
-                  <EmptyState
-                    icon={Building2}
-                    title="Nenhuma empresa cadastrada"
-                    description="Administradores e gestores cadastram empresas em Configurações → Empresas."
-                  />
-                ) : (
-                  <ul className="flex flex-col gap-1">
-                    {ranking.map(({ uf, count }) => (
-                      <li key={uf}>
-                        <button
-                          type="button"
-                          onClick={() => selectUf(uf)}
-                          className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface-2"
-                        >
-                          <span className="text-fg">{UF_NAMES[uf]}</span>
-                          <span className="text-muted tabular-nums">{companiesLabel(count)}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </>
-          )}
-        </Card>
+        <ExplorerPanel
+          searching={searching}
+          results={results}
+          selectedUf={selectedUf}
+          stateCompanies={stateCompanies}
+          ranking={ranking}
+          pendingId={isPending ? pendingId : null}
+          activeId={activeCompanyId}
+          parentNames={parentNames}
+          onOpen={openFromList}
+          onSelectUf={(uf) => selectUf(uf)}
+          onClearUf={() => selectUf(null)}
+        />
       </div>
     </div>
   );

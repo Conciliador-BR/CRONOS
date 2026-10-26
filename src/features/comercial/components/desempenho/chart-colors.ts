@@ -7,6 +7,8 @@
 export const CHART_COLORS = {
   revenue: "#2563eb",
   goal: "#0891b2",
+  /** Perdidos no gráfico ganhos x perdidos (par com `revenue` validado no fundo `surface`). */
+  lost: "#ea580c",
   grid: "#1e2a4a",
   axis: "#8a97b8",
   surface: "#0b1020",

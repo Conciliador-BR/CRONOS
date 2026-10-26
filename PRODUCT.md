@@ -14,10 +14,10 @@ A equipe usa ferramentas separadas para tarefas (Trello), reuniões (Google Agen
 ## Fluxos da primeira versão
 
 1. Apresentação → login → página inicial com atalhos.
-2. Empresas: mapa do Brasil com estados atendidos → card com mercados do estado → informações do cliente.
-3. Configurações: cadastrar empresa (CNPJ, ECs, contas bancárias, PDF, endereço) e cliente; cadastrar funcionário com login.
+2. Empresas: mapa do Brasil com um ponto em cada mercado (local exato, zoom até a rua) → estado com a lista de mercados → card lateral com as informações do cliente.
+3. Configurações: cadastrar empresa (CNPJ com busca na BrasilAPI, CNAE, matriz/filial, endereço e localização no mapa, ECs, contas bancárias, PDF) e cliente; cadastrar funcionário com login.
 4. Operacional (menu ≡ no canto superior esquerdo): Missões estilo Trello, Agenda estilo Google Agenda, Documentações de API por adquirente (anexos + bloco de notas), Cursos estilo Hotmart/Hubla.
-5. Comercial: pipeline (lead recebido → diagnóstico → reunião → follow up → fechado/perdido) com perguntas ao fechar/perder; Desempenho (faturamento, equipe, ranking, metas, card do funcionário com gráfico); Insights (origem dos leads, indicadores, motivos de perda).
+5. Comercial: pipeline (lead recebido → diagnóstico → reunião → follow up → fechado/perdido) com perguntas ao fechar/perder; Desempenho (faturamento, clientes perdidos e taxa de perda, equipe, ranking, metas, card do funcionário com gráficos); Insights (origem dos leads, indicadores, motivos de perda).
 
 ## MVP
 
@@ -33,7 +33,8 @@ Todos os fluxos acima. Detalhamento e responsáveis em [TASKS.md](TASKS.md).
 
 - Interface em português do Brasil, responsiva, acessível por teclado, contraste adequado no tema escuro.
 - Valores em reais armazenados em centavos inteiros.
-- CNPJ validado pelos dígitos verificadores; UF obrigatória para posicionar no mapa.
+- CNPJ validado pelos dígitos verificadores; UF obrigatória. CNAE com 7 dígitos. Latitude/longitude opcionais (as duas juntas, dentro do Brasil); sem elas o mercado aparece perto do centro do estado.
+- Filiais: um nível só (matriz → filiais), garantido no banco.
 - Fechar negócio exige tipo (consultoria avançada ou somente sistema) e valor; perder exige motivo. O banco garante essas regras com `check`.
 - Indicação exige nome do indicador.
 - Arquivos privados, baixados por URL assinada.
@@ -57,7 +58,7 @@ Todos os fluxos acima. Detalhamento e responsáveis em [TASKS.md](TASKS.md).
 - Funcionário comum não vê dados bancários nem PDFs de empresas, nem acessa Configurações.
 - Arrastar lead para "Cliente fechado" só conclui após informar tipo e valor; para "Cliente perdido", após informar o motivo.
 - Desempenho e Insights refletem o pipeline sem cadastro duplicado.
-- Estado com empresa cadastrada aparece destacado no mapa e lista os mercados ao clicar.
+- Cada empresa aparece como um ponto no mapa no local cadastrado (sem pintar o estado inteiro); clicar num estado aproxima e lista os mercados; clicar num ponto abre o card lateral.
 
 ## Manutenção
 

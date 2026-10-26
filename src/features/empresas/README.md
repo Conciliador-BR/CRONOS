@@ -1,6 +1,6 @@
 # Empresas
 
-Mapa do Brasil (`/empresas`) com os estados atendidos em destaque, card do estado com os mercados e detalhe do cliente.
+Mapa do Brasil (`/empresas`) com um ponto em cada mercado, lista de mercados do estado e card lateral com o detalhe do cliente.
 
 **Responsável:** Dev Empresas & Configurações.
 
@@ -29,7 +29,8 @@ src/features/empresas/
 
 ## Implementado
 
-- `/empresas`: mapa (`components/brazil-map.tsx`, cores em `map-utils.ts`), painel com busca, resumo e mercados do estado (`components/empresas-explorer.tsx`). A UF fica em `?uf=SP`; o detalhe abre pela URL `?empresa=<id>` numa gaveta (`components/company-detail-drawer.tsx`), lido no servidor por `getCompanyDetail`.
+- `/empresas`: mapa MapLibre (`components/company-map.tsx`, camadas em `map-layers.ts`, pinos e grupos HTML em `map-markers.ts`, nuvem em `cloud-overlay.tsx`) + painel com busca, resumo e mercados do estado (`components/empresas-explorer.tsx`, `explorer-panel.tsx`). A UF fica em `?uf=SP`; o card abre pela URL `?empresa=<id>` (`components/company-drawer.tsx`), lido no servidor por `getCompanyDetail` (inclui CNAE, matriz e filiais).
+- Estilo base CARTO Dark Matter com fallback local (`map-style.ts`); contornos das UFs em `public/geo/br-uf.json` (IBGE, via geodata-br-states); caixas/centros por UF em `uf-geo.ts`; GeoJSON dos pinos e posição aproximada (sem coordenadas) em `geo.ts`; máscara do CNAE em `cnae.ts`.
 - Contas bancárias e PDFs só são consultados para admin/gestor; download por URL assinada de 60 s (`actions.ts` → `getCompanyDocumentUrl`).
-- Crédito do mapa (CC BY 4.0, @svg-maps/brazil / MapSVG) no rodapé do cartão do mapa.
-- Lógica pura testada: `map-utils.test.ts`, `format.test.ts`.
+- CSS global com prefixo `em-` (`components/empresas-map.css`, `components/company-drawer.css`, `map-theme.css`): o projeto não usa CSS Modules.
+- Lógica pura testada: `map-utils.test.ts`, `geo.test.ts`, `cnae.test.ts`, `format.test.ts`.

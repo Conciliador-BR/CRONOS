@@ -65,3 +65,8 @@ export const checklistUpdateSchema = z.object({
 });
 
 export const idWithBoardSchema = z.object({ id, boardId: id });
+
+export const cardRefSchema = z.object({ cardId: id, boardId: id });
+export const attachmentRefSchema = z.object({ id, cardId: id, boardId: id });
+/** attachmentId null remove a capa. */
+export const cardCoverSchema = z.object({ cardId: id, boardId: id, attachmentId: id.nullable() });

@@ -49,7 +49,7 @@ Regra: **um escritor por arquivo**. Revisores só leem; correções voltam para 
 
 ## Épico 2 — Empresas
 
-- [x] **2.1 Mapa do Brasil** (`/empresas`) — estados com empresas cadastradas em destaque azul (intensidade pela quantidade), demais em cinza escuro. Fonte do SVG: `@svg-maps/brazil`.
+- [x] **2.1 Mapa do Brasil** (`/empresas`) — MapLibre com bolinha no local exato de cada mercado (lat/lng), zoom até a cidade, efeito nuvem e card lateral animado. Limites das UFs: IBGE via `public/geo/br-uf.json`.
 - [x] **2.2 Card do estado** — ao clicar no estado, abrir card listando os **mercados** (nome do mercado / nome fantasia) atendidos naquele estado.
 - [x] **2.3 Detalhe do cliente** — ao clicar no mercado, abrir as informações cadastradas: CNPJ, endereço, ECs, cliente vinculado; dados bancários e PDFs só para admin/gestor (RLS já restringe).
 

@@ -22,6 +22,18 @@ export async function getBoards(): Promise<BoardSummary[]> {
   }));
 }
 
+export const CARD_IMAGES_BUCKET = "card-images";
+
+/** URLs assinadas (1 h) em uma única chamada ao Storage. Falha vira "sem imagem". */
+export async function signCardImages(paths: string[]): Promise<Map<string, string>> {
+  const urls = new Map<string, string>();
+  if (paths.length === 0) return urls;
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from(CARD_IMAGES_BUCKET).createSignedUrls(paths, 3600);
+  for (const item of data ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
+  return urls;
+}
+
 async function getDestinations(): Promise<BoardDestination[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -45,7 +57,7 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
     supabase
       .from("cards")
       .select(
-        "id, list_id, title, description, due_at, completed, position, card_labels(label_id), card_assignees(profile_id), card_checklist_items(id, content, done, position)",
+        "id, list_id, title, description, due_at, completed, position, cover_attachment_id, card_labels(label_id), card_assignees(profile_id), card_checklist_items(id, content, done, position), cover:card_attachments!cards_cover_attachment_id_fkey(storage_path), attachments:card_attachments!card_attachments_card_id_fkey(count)",
       )
       .eq("board_id", boardId)
       .eq("archived", false)
@@ -59,7 +71,9 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
   }
   if (!boardRes.data) return null;
 
-  const cards: BoardCard[] = (cardsRes.data ?? []).map((row) => ({
+  const rows = cardsRes.data ?? [];
+  const coverUrls = await signCardImages(rows.flatMap((row) => (row.cover?.storage_path ? [row.cover.storage_path] : [])));
+  const cards: BoardCard[] = rows.map((row) => ({
     id: row.id,
     listId: row.list_id,
     title: row.title,
@@ -70,6 +84,9 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
     labelIds: row.card_labels.map((item) => item.label_id),
     assigneeIds: row.card_assignees.map((item) => item.profile_id),
     checklist: row.card_checklist_items.toSorted((a, b) => a.position - b.position),
+    coverAttachmentId: row.cover_attachment_id,
+    coverUrl: row.cover?.storage_path ? (coverUrls.get(row.cover.storage_path) ?? null) : null,
+    attachmentCount: row.attachments[0]?.count ?? 0,
   }));
 
   return {

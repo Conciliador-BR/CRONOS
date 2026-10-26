@@ -2,6 +2,7 @@ import "server-only";
 import { requireRole } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import { marketLabel } from "@/features/empresas/map-utils";
 import { currentMonthStart } from "./form-utils";
 
 const MANAGERS = ["admin", "gestor"] as const;
@@ -21,6 +22,9 @@ export type CompanyListItem = {
   uf: string;
   clientName: string | null;
   ecCount: number;
+  cnae: string | null;
+  parentId: string | null;
+  located: boolean;
 };
 
 export async function getCompanyList(): Promise<CompanyListItem[]> {
@@ -28,7 +32,9 @@ export async function getCompanyList(): Promise<CompanyListItem[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
-    .select("id, cnpj, legal_name, market_name, trade_name, city, uf, client:clients(name), ecs:company_ec_numbers(count)")
+    .select(
+      "id, cnpj, legal_name, market_name, trade_name, city, uf, cnae, parent_company_id, latitude, client:clients(name), ecs:company_ec_numbers(count)",
+    )
     .order("legal_name");
   if (error) fail("empresas", error.code);
   return data.map((c) => ({
@@ -41,6 +47,31 @@ export async function getCompanyList(): Promise<CompanyListItem[]> {
     uf: c.uf,
     clientName: c.client?.name ?? null,
     ecCount: c.ecs[0]?.count ?? 0,
+    cnae: c.cnae,
+    parentId: c.parent_company_id,
+    located: c.latitude !== null,
+  }));
+}
+
+export type MatrizOption = { id: string; label: string; city: string | null; uf: string };
+
+/** Empresas que podem ser matriz: as que não são filiais (exceto a própria empresa). */
+export async function getMatrizOptions(excludeId?: string): Promise<MatrizOption[]> {
+  await requireRole([...MANAGERS]);
+  const supabase = await createClient();
+  let query = supabase
+    .from("companies")
+    .select("id, legal_name, trade_name, market_name, city, uf")
+    .is("parent_company_id", null)
+    .order("legal_name");
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data, error } = await query;
+  if (error) fail("matrizes", error.code);
+  return data.map((c) => ({
+    id: c.id,
+    label: marketLabel({ legalName: c.legal_name, tradeName: c.trade_name, marketName: c.market_name }),
+    city: c.city,
+    uf: c.uf,
   }));
 }
 
@@ -96,6 +127,13 @@ export type CompanyFormData = {
   district: string | null;
   city: string | null;
   uf: string;
+  cnae: string | null;
+  cnaeDescription: string | null;
+  parentCompanyId: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** Quantas filiais apontam para esta empresa (se > 0, ela não pode virar filial). */
+  branchCount: number;
   clientId: string | null;
   ecs: { id: string; acquirer: string; ecNumber: string }[];
   banks: { id: string; bank: string; agency: string; account: string; accountType: string | null }[];
@@ -105,10 +143,12 @@ export type CompanyFormData = {
 export async function getCompanyForEdit(id: string): Promise<CompanyFormData | null> {
   await requireRole([...MANAGERS]);
   const supabase = await createClient();
-  const [company, ecs, banks, docs] = await Promise.all([
+  const [company, ecs, banks, docs, branches] = await Promise.all([
     supabase
       .from("companies")
-      .select("id, cnpj, legal_name, trade_name, market_name, cep, street, number, complement, district, city, uf, client_id")
+      .select(
+        "id, cnpj, legal_name, trade_name, market_name, cep, street, number, complement, district, city, uf, client_id, cnae, cnae_description, parent_company_id, latitude, longitude",
+      )
       .eq("id", id)
       .maybeSingle(),
     supabase.from("company_ec_numbers").select("id, acquirer, ec_number").eq("company_id", id).order("created_at"),
@@ -122,8 +162,9 @@ export async function getCompanyForEdit(id: string): Promise<CompanyFormData | n
       .select("id, file_name, size_bytes, created_at")
       .eq("company_id", id)
       .order("created_at", { ascending: false }),
+    supabase.from("companies").select("id", { count: "exact", head: true }).eq("parent_company_id", id),
   ]);
-  const error = company.error ?? ecs.error ?? banks.error ?? docs.error;
+  const error = company.error ?? ecs.error ?? banks.error ?? docs.error ?? branches.error;
   if (error) fail("empresa", error.code);
   const c = company.data;
   if (!c) return null;
@@ -140,6 +181,12 @@ export async function getCompanyForEdit(id: string): Promise<CompanyFormData | n
     district: c.district,
     city: c.city,
     uf: c.uf,
+    cnae: c.cnae,
+    cnaeDescription: c.cnae_description,
+    parentCompanyId: c.parent_company_id,
+    latitude: c.latitude === null ? null : Number(c.latitude),
+    longitude: c.longitude === null ? null : Number(c.longitude),
+    branchCount: branches.count ?? 0,
     clientId: c.client_id,
     ecs: (ecs.data ?? []).map((e) => ({ id: e.id, acquirer: e.acquirer, ecNumber: e.ec_number })),
     banks: (banks.data ?? []).map((b) => ({

@@ -27,7 +27,7 @@ getMyOpenCards(limit: number): Promise<MyOpenCard[]>
 | Rota | Conteúdo |
 |---|---|
 | `/operacional/missoes` | Quadros (criar, renomear, cor de fundo, excluir) |
-| `/operacional/missoes/[boardId]` | Listas e cartões com arrastar e soltar, detalhes do cartão, arquivados |
+| `/operacional/missoes/[boardId]` | Listas e cartões com arrastar e soltar, concluir no cartão, fotos e capa, mudar de quadro, arquivados |
 | `/operacional/agenda?visao=mes\|semana\|dia&data=aaaa-mm-dd` | Agenda; o servidor busca só o período visível |
 | `/operacional/documentacoes` | Grade de adquirentes (gestor cria, edita, reordena, envia logo) |
 | `/operacional/documentacoes/[acquirerId]` | Documentos (envio, download, exclusão) e notas com salvamento automático |
@@ -42,7 +42,7 @@ queries.ts                 API pública para outros módulos (server-only)
 shared/                    Comum aos submódulos
   action-utils.ts          invalid(), failure() (log sem dados pessoais), requireManagerOrNull()
   result.ts                ActionResult<T> = { ok: true, ...T } | { ok: false, error, fieldErrors? }
-  files.ts                 sanitizeFilename, buildStoragePath, isPathInFolder, limites, assinatura de imagem (testado)
+  files.ts                 sanitizeFilename, buildStoragePath, isPathInFolder, limites, assinatura de imagem, checkCardImage (testado)
   image-upload.ts          Leitura/validação de imagem recebida por FormData (server-only)
   members.ts               Funcionários ativos com foto assinada
   position.ts              Posições double (ponto médio entre vizinhos) (testado)
@@ -61,6 +61,10 @@ missoes/   agenda/   documentacoes/   cursos/
 - **Downloads:** URL assinada de 60 s com o nome original do arquivo (`download`).
 - **Capas de curso:** bucket privado `course-covers` (migration `20261023190000_operacional_course_covers.sql`: imagens até 2 MB; membros leem, gestores enviam e removem).
 - **Vídeos de aula:** `video.ts` (testado) só aceita links `https` do YouTube (watch, youtu.be, embed, shorts, live) e de arquivos do Drive (`/file/d/<id>`, `open?id=`, `uc?id=`). Os players são `youtube-nocookie.com/embed/<id>` e `drive.google.com/file/d/<id>/preview`.
+
+- **Cartão (rosto):** a superfície de arrastar/abrir é um elemento atrás do visual; a bolinha "Marcar como concluída" (`card-complete-toggle.tsx`, `aria-pressed`) e o menu "…" (`card-quick-menu.tsx`, Popover API, setas/Home/End/Esc) ficam por cima e não iniciam arrasto. Concluir e arquivar usam `use-card-commands.ts` (otimista). "Mudar de quadro" no menu abre o modal com o seletor de quadro/lista já aberto (`openCard(id, "move")`).
+- **Fotos dos cartões** (`attachment-actions.ts`, migration `20261026120000_feedback_cnae_filiais_fotos.sql`): bucket privado `card-images`, caminho `<card_id>/<uuid>.<ext>`. Envio por FormData (uma foto por chamada; o cliente envia várias em sequência) com tipo, tamanho (10 MB) e assinatura dos bytes conferidos no servidor. A primeira foto vira capa. As ações conferem que o cartão está no quadro e a foto no cartão antes de definir capa ou excluir; excluir apaga a linha (RLS: quem enviou ou gestor) e depois o arquivo. O quadro assina as capas em lote (`createSignedUrls`, 1 h) e conta as fotos de cada cartão; a lista completa só carrega ao abrir o cartão.
+- **Lembretes:** o módulo `src/features/lembretes` lê `events`/`event_attendees` e `cards`/`card_assignees` diretamente (só leitura) para o sino da barra superior.
 
 ## Pendências
 

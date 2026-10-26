@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRightLeft } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { transferCard } from "../card-actions";
@@ -9,15 +9,24 @@ import { removeCard } from "../board-state";
 import { useBoard } from "./board-context";
 import { SectionTitle } from "./section-title";
 
-/** "Mover": troca de lista ou de quadro (vai para o fim da lista escolhida). */
-export function CardMove({ cardId }: { cardId: string }) {
+/** "Mudar de quadro / lista" (vai para o fim da lista escolhida). `defaultOpen` vem do menu "…" do cartão. */
+export function CardMove({ cardId, defaultOpen = false }: { cardId: string; defaultOpen?: boolean }) {
   const { state, meta, actions } = useBoard();
   const card = state.cards[cardId];
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [boardId, setBoardId] = useState(meta.boardId);
   const destination = meta.destinations.find((board) => board.id === boardId);
   const [listId, setListId] = useState(card?.listId ?? "");
   const [pending, setPending] = useState(false);
+  const boardSelectRef = useRef<HTMLSelectElement>(null);
+
+  // Aberto pelo menu "…": foca o quadro depois que o modal assume o foco.
+  useEffect(() => {
+    if (!defaultOpen) return;
+    const frame = requestAnimationFrame(() => boardSelectRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [defaultOpen]);
+
   if (!card) return null;
 
   async function move() {
@@ -40,13 +49,14 @@ export function CardMove({ cardId }: { cardId: string }) {
       <SectionTitle id="card-move-title">Ações</SectionTitle>
       <Button variant="secondary" size="sm" className="w-full justify-start" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <ArrowRightLeft aria-hidden />
-        Mover
+        Mudar de quadro / lista
       </Button>
       {open ? (
         <div className="mt-2 flex flex-col gap-2 rounded-lg border border-border bg-surface-2 p-3">
           <label className="flex flex-col gap-1 text-xs font-medium text-muted">
             Quadro
             <Select
+              ref={boardSelectRef}
               value={boardId}
               onChange={(event) => {
                 setBoardId(event.target.value);

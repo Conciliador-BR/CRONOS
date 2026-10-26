@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { formatCents } from "@/lib/format/money";
 import { DEAL_TYPE_LABELS } from "../../constants";
-import { formatDate } from "../../lib/format";
+import { formatDate, formatPercent } from "../../lib/format";
 import { formatMonthLabel, type MonthKey } from "../../lib/months";
 import type { SellerPerformance } from "../../lib/performance";
 import { GoalBar } from "./goal-bar";
@@ -17,6 +17,10 @@ import { GoalBar } from "./goal-bar";
 const EmployeeChart = dynamic(() => import("./employee-chart"), {
   ssr: false,
   loading: () => <div className="h-64 w-full rounded-lg bg-surface-2 motion-safe:animate-pulse" />,
+});
+const EmployeeOutcomeChart = dynamic(() => import("./employee-outcome-chart"), {
+  ssr: false,
+  loading: () => <div className="h-52 w-full rounded-lg bg-surface-2 motion-safe:animate-pulse" />,
 });
 
 type Props = {
@@ -42,11 +46,17 @@ export function EmployeeDetailModal({ seller, month, totals, onClose }: Props) {
             </div>
           </div>
 
-          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Stat label="Faturamento no mês" value={formatCents(seller.revenueCents)} />
             <Stat label="Valor em comissão (mês)" value={formatCents(seller.commissionCents)} />
-            <Stat label="Clientes convertidos" value={String(totals?.wonCount ?? seller.conversions.length)} hint={`${totals?.lostCount ?? 0} perdidos`} />
+            <Stat label="Clientes convertidos" value={String(totals?.wonCount ?? seller.conversions.length)} hint={`Desde o início · ${seller.wonCount} no mês`} />
             <Stat label="Comissão acumulada" value={formatCents(seller.totalCommissionCents)} hint={`Sobre ${formatCents(seller.totalRevenueCents)}`} />
+            <Stat label="Clientes perdidos no mês" value={String(seller.lostCount)} hint={`${totals?.lostCount ?? 0} desde o início`} />
+            <Stat
+              label="Taxa de perda no mês"
+              value={seller.lossRate === null ? "—" : formatPercent(seller.lossRate, 1)}
+              hint="Perdidos ÷ (fechados + perdidos)"
+            />
           </dl>
 
           <GoalBar label={`Meta de ${monthLabel}`} realizedCents={seller.revenueCents} goalCents={seller.goalCents} progress={seller.progress} />
@@ -56,6 +66,7 @@ export function EmployeeDetailModal({ seller, month, totals, onClose }: Props) {
               Desempenho por mês
             </h3>
             <EmployeeChart monthly={seller.monthly} />
+            <EmployeeOutcomeChart monthly={seller.monthly} />
             <details className="text-sm">
               <summary className="cursor-pointer text-muted hover:text-fg">Ver dados em tabela</summary>
               <div className="mt-2 overflow-x-auto">
@@ -65,7 +76,8 @@ export function EmployeeDetailModal({ seller, month, totals, onClose }: Props) {
                       <th className="py-1 pr-3 font-medium">Mês</th>
                       <th className="py-1 pr-3 text-right font-medium">Faturamento</th>
                       <th className="py-1 pr-3 text-right font-medium">Meta</th>
-                      <th className="py-1 text-right font-medium">Negócios</th>
+                      <th className="py-1 pr-3 text-right font-medium">Fechados</th>
+                      <th className="py-1 text-right font-medium">Perdidos</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border tabular-nums">
@@ -74,7 +86,8 @@ export function EmployeeDetailModal({ seller, month, totals, onClose }: Props) {
                         <td className="py-1 pr-3 capitalize">{formatMonthLabel(point.month)}</td>
                         <td className="py-1 pr-3 text-right">{formatCents(point.revenueCents)}</td>
                         <td className="py-1 pr-3 text-right">{point.goalCents ? formatCents(point.goalCents) : "—"}</td>
-                        <td className="py-1 text-right">{point.wonCount}</td>
+                        <td className="py-1 pr-3 text-right">{point.wonCount}</td>
+                        <td className="py-1 text-right">{point.lostCount}</td>
                       </tr>
                     ))}
                   </tbody>

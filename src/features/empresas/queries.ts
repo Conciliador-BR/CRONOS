@@ -3,7 +3,7 @@ import { cache } from "react";
 import { isManager, requireMember } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
-import type { CompanySummary } from "./map-utils";
+import { marketLabel, type CompanySummary } from "./map-utils";
 
 /** Todas as empresas, só com os campos do mapa e da busca (RLS: membros leem). */
 export const getCompanySummaries = cache(async (): Promise<CompanySummary[]> => {
@@ -11,7 +11,9 @@ export const getCompanySummaries = cache(async (): Promise<CompanySummary[]> => 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("companies")
-    .select("id, uf, city, cnpj, legal_name, trade_name, market_name, client:clients(name)")
+    .select(
+      "id, uf, city, cnpj, legal_name, trade_name, market_name, latitude, longitude, parent_company_id, client:clients(name)",
+    )
     .order("legal_name");
   if (error) {
     logger.error({ code: error.code }, "empresas: falha ao listar empresas");
@@ -26,8 +28,16 @@ export const getCompanySummaries = cache(async (): Promise<CompanySummary[]> => 
     tradeName: c.trade_name,
     marketName: c.market_name,
     clientName: c.client?.name ?? null,
+    latitude: c.latitude === null ? null : Number(c.latitude),
+    longitude: c.longitude === null ? null : Number(c.longitude),
+    parentId: c.parent_company_id,
   }));
 });
+
+/** Empresa relacionada (matriz ou filial) com o nome exibido e o local. */
+export type RelatedCompany = { id: string; name: string; city: string | null; uf: string };
+
+const RELATED_COLUMNS = "id, legal_name, trade_name, market_name, city, uf";
 
 export type CompanyDetail = {
   company: {
@@ -43,7 +53,15 @@ export type CompanyDetail = {
     district: string | null;
     city: string | null;
     uf: string;
+    cnae: string | null;
+    cnaeDescription: string | null;
+    latitude: number | null;
+    longitude: number | null;
   };
+  /** Matriz, quando a empresa é filial. */
+  parent: RelatedCompany | null;
+  /** Filiais, quando a empresa é matriz. */
+  branches: RelatedCompany[];
   ecs: { id: string; acquirer: string; ecNumber: string }[];
   client: {
     name: string;
@@ -69,6 +87,7 @@ export async function getCompanyDetail(id: string): Promise<CompanyDetail | null
     .from("companies")
     .select(
       "id, cnpj, legal_name, trade_name, market_name, cep, street, number, complement, district, city, uf, " +
+        "cnae, cnae_description, latitude, longitude, parent_company_id, " +
         "client:clients(name, document, email, phone, notes), ecs:company_ec_numbers(id, acquirer, ec_number)",
     )
     .eq("id", id)
@@ -88,14 +107,29 @@ export async function getCompanyDetail(id: string): Promise<CompanyDetail | null
         .order("created_at", { ascending: false })
     : null;
 
-  const [companyRes, banksRes, docsRes] = await Promise.all([companyPromise, banksPromise, docsPromise]);
-  const failure = companyRes.error ?? banksRes?.error ?? docsRes?.error;
+  const branchesPromise = supabase
+    .from("companies")
+    .select(RELATED_COLUMNS)
+    .eq("parent_company_id", id)
+    .order("legal_name");
+
+  const [companyRes, banksRes, docsRes, branchesRes] = await Promise.all([
+    companyPromise,
+    banksPromise,
+    docsPromise,
+    branchesPromise,
+  ]);
+  const failure = companyRes.error ?? banksRes?.error ?? docsRes?.error ?? branchesRes.error;
   if (failure) {
     logger.error({ code: failure.code }, "empresas: falha ao ler empresa");
     throw new Error("Não foi possível carregar a empresa.");
   }
   const row = companyRes.data as unknown as CompanyRow | null;
   if (!row) return null;
+  const parentRes = row.parent_company_id
+    ? await supabase.from("companies").select(RELATED_COLUMNS).eq("id", row.parent_company_id).maybeSingle()
+    : null;
+  if (parentRes?.error) logger.warn({ code: parentRes.error.code }, "empresas: falha ao ler matriz");
 
   return {
     company: {
@@ -111,7 +145,13 @@ export async function getCompanyDetail(id: string): Promise<CompanyDetail | null
       district: row.district,
       city: row.city,
       uf: row.uf,
+      cnae: row.cnae,
+      cnaeDescription: row.cnae_description,
+      latitude: row.latitude === null ? null : Number(row.latitude),
+      longitude: row.longitude === null ? null : Number(row.longitude),
     },
+    parent: parentRes?.data ? toRelated(parentRes.data) : null,
+    branches: (branchesRes.data ?? []).map(toRelated),
     ecs: [...row.ecs]
       .sort((a, b) => a.acquirer.localeCompare(b.acquirer, "pt-BR"))
       .map((e) => ({ id: e.id, acquirer: e.acquirer, ecNumber: e.ec_number })),
@@ -149,6 +189,27 @@ type CompanyRow = {
   district: string | null;
   city: string | null;
   uf: string;
+  cnae: string | null;
+  cnae_description: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  parent_company_id: string | null;
   client: NonNullable<CompanyDetail["client"]> | null;
   ecs: { id: string; acquirer: string; ec_number: string }[];
 };
+
+function toRelated(c: {
+  id: string;
+  legal_name: string;
+  trade_name: string | null;
+  market_name: string | null;
+  city: string | null;
+  uf: string;
+}): RelatedCompany {
+  return {
+    id: c.id,
+    name: marketLabel({ legalName: c.legal_name, tradeName: c.trade_name, marketName: c.market_name }),
+    city: c.city,
+    uf: c.uf,
+  };
+}

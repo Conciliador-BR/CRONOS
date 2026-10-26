@@ -1,7 +1,8 @@
 import "server-only";
 import { isManager, requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { monthStartDate, type MonthKey } from "./lib/months";
+import type { LostDeal } from "./lib/lost";
+import { lastMonths, monthBounds, monthStartDate, type MonthKey } from "./lib/months";
 import { buildPerformance, goalWindowStart, type ClosedDeal, type PerformanceSummary } from "./lib/performance";
 import { failQuery, fetchAllRows, getActiveMembers } from "./queries";
 
@@ -13,12 +14,17 @@ export type PerformanceData = PerformanceSummary & {
   allTime: Record<string, AllTimeTotals>;
 };
 
-/** Desempenho do mês: KPIs, ranking, metas, equipe e histórico de 12 meses por funcionário. */
+/**
+ * Desempenho do mês: KPIs, ranking, metas, equipe, clientes perdidos e histórico de 12 meses por funcionário.
+ * Perdas são lidas só na janela de 12 meses (por `closed_at`, a data em que o lead entrou em "Cliente perdido").
+ */
 export async function getPerformanceData(month: MonthKey): Promise<PerformanceData> {
   const profile = await requireMember();
   const supabase = await createClient();
+  const lostFrom = monthBounds(lastMonths(month, 12)[0]).start;
+  const lostTo = monthBounds(month).end;
 
-  const [members, deals, goals, totals] = await Promise.all([
+  const [members, deals, goals, totals, lostRows] = await Promise.all([
     getActiveMembers(),
     fetchAllRows("performance-deals", (from, to) =>
       supabase
@@ -41,6 +47,17 @@ export async function getPerformanceData(month: MonthKey): Promise<PerformanceDa
         .range(from, to),
     ),
     supabase.from("seller_performance").select("profile_id, won_count, lost_count"),
+    fetchAllRows("performance-lost", (from, to) =>
+      supabase
+        .from("leads")
+        .select("id, name, company_name, owner_id, source, lost_reason, closed_at, owner:profiles!leads_owner_id_fkey(full_name)")
+        .eq("stage", "cliente_perdido")
+        .gte("closed_at", lostFrom)
+        .lt("closed_at", lostTo)
+        .order("closed_at", { ascending: false })
+        .order("id")
+        .range(from, to),
+    ),
   ]);
   if (totals.error) failQuery("seller-performance", totals.error);
 
@@ -54,6 +71,17 @@ export async function getPerformanceData(month: MonthKey): Promise<PerformanceDa
     closedAt: row.closed_at as string,
   }));
 
+  const lost: LostDeal[] = lostRows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    companyName: row.company_name,
+    ownerId: row.owner_id,
+    ownerName: row.owner?.full_name || null,
+    source: row.source,
+    reason: row.lost_reason ?? "",
+    lostAt: row.closed_at as string,
+  }));
+
   const allTime: Record<string, AllTimeTotals> = {};
   for (const row of totals.data ?? []) {
     if (row.profile_id) allTime[row.profile_id] = { wonCount: row.won_count ?? 0, lostCount: row.lost_count ?? 0 };
@@ -64,6 +92,7 @@ export async function getPerformanceData(month: MonthKey): Promise<PerformanceDa
       month,
       members,
       deals: closedDeals,
+      lost,
       goals: goals.map((g) => ({ profileId: g.profile_id, month: g.month, goalCents: g.goal_cents })),
     }),
     canManage: isManager(profile),

@@ -11,6 +11,11 @@ export type CompanySummary = {
   tradeName: string | null;
   marketName: string | null;
   clientName: string | null;
+  /** Coordenadas exatas do mercado (6 casas); null quando ainda não foi localizado. */
+  latitude: number | null;
+  longitude: number | null;
+  /** Matriz desta empresa, quando ela é filial. */
+  parentId: string | null;
 };
 
 /** Nome exibido do mercado: nome do mercado, senão nome fantasia, senão razão social. */
@@ -32,38 +37,6 @@ export function groupByUf(companies: readonly CompanySummary[]) {
   }
   for (const list of groups.values()) list.sort((a, b) => collator.compare(marketLabel(a), marketLabel(b)));
   return groups;
-}
-
-/** Tons de azul do mais claro de intensidade (poucas empresas) ao mais forte. */
-export const MAP_FILL_STEPS = ["#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa"] as const;
-export const MAP_EMPTY_FILL = "#1c2333";
-
-/** Índice da faixa de cor (0..steps-1) ou -1 quando não há empresas. */
-export function bucketIndex(count: number, max: number, steps: number = MAP_FILL_STEPS.length) {
-  if (count <= 0 || max <= 0) return -1;
-  const ratio = Math.min(count, max) / max;
-  return Math.min(steps - 1, Math.max(0, Math.ceil(ratio * steps) - 1));
-}
-
-export function fillFor(count: number, max: number) {
-  const index = bucketIndex(count, max);
-  return index < 0 ? MAP_EMPTY_FILL : MAP_FILL_STEPS[index];
-}
-
-export type LegendItem = { color: string; label: string };
-
-/** Faixas da legenda que realmente aparecem para o máximo atual. */
-export function legendFor(max: number): LegendItem[] {
-  const steps = MAP_FILL_STEPS.length;
-  const items: LegendItem[] = [];
-  for (let i = 0; i < steps; i++) {
-    // Menor e maior contagem que caem na faixa i.
-    const low = Math.floor((i * max) / steps) + 1;
-    const high = Math.floor(((i + 1) * max) / steps);
-    if (low > high) continue;
-    items.push({ color: MAP_FILL_STEPS[i], label: low === high ? String(low) : `${low}–${high}` });
-  }
-  return items;
 }
 
 export function companiesLabel(count: number) {

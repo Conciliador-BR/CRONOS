@@ -256,6 +256,61 @@ export type Database = {
           },
         ]
       }
+      card_attachments: {
+        Row: {
+          card_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_attachments_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "seller_performance"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       card_checklist_items: {
         Row: {
           card_id: string
@@ -323,6 +378,7 @@ export type Database = {
           archived: boolean
           board_id: string
           completed: boolean
+          cover_attachment_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -337,6 +393,7 @@ export type Database = {
           archived?: boolean
           board_id: string
           completed?: boolean
+          cover_attachment_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -351,6 +408,7 @@ export type Database = {
           archived?: boolean
           board_id?: string
           completed?: boolean
+          cover_attachment_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -362,6 +420,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cards_cover_attachment_id_fkey"
+            columns: ["cover_attachment_id"]
+            isOneToOne: false
+            referencedRelation: "card_attachments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cards_board_id_fkey"
             columns: ["board_id"]
@@ -448,15 +513,20 @@ export type Database = {
           cep: string | null
           city: string | null
           client_id: string | null
+          cnae: string | null
+          cnae_description: string | null
           cnpj: string
           complement: string | null
           created_at: string
           created_by: string | null
           district: string | null
           id: string
+          latitude: number | null
           legal_name: string
+          longitude: number | null
           market_name: string | null
           number: string | null
+          parent_company_id: string | null
           street: string | null
           trade_name: string | null
           uf: string
@@ -466,15 +536,20 @@ export type Database = {
           cep?: string | null
           city?: string | null
           client_id?: string | null
+          cnae?: string | null
+          cnae_description?: string | null
           cnpj: string
           complement?: string | null
           created_at?: string
           created_by?: string | null
           district?: string | null
           id?: string
+          latitude?: number | null
           legal_name: string
+          longitude?: number | null
           market_name?: string | null
           number?: string | null
+          parent_company_id?: string | null
           street?: string | null
           trade_name?: string | null
           uf: string
@@ -484,21 +559,33 @@ export type Database = {
           cep?: string | null
           city?: string | null
           client_id?: string | null
+          cnae?: string | null
+          cnae_description?: string | null
           cnpj?: string
           complement?: string | null
           created_at?: string
           created_by?: string | null
           district?: string | null
           id?: string
+          latitude?: number | null
           legal_name?: string
+          longitude?: number | null
           market_name?: string | null
           number?: string | null
+          parent_company_id?: string | null
           street?: string | null
           trade_name?: string | null
           uf?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "companies_parent_company_id_fkey"
+            columns: ["parent_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "companies_client_id_fkey"
             columns: ["client_id"]

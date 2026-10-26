@@ -32,6 +32,9 @@ export function AddCardForm({ listId }: { listId: string }) {
       labelIds: [],
       assigneeIds: [],
       checklist: [],
+      coverAttachmentId: null,
+      coverUrl: null,
+      attachmentCount: 0,
     };
     actions.setState((state) => appendCard(state, temp));
     const result = await createCard({ boardId: meta.boardId, listId, title: value });

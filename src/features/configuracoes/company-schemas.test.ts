@@ -33,7 +33,44 @@ describe("companySchema", () => {
       newClient: null,
       ecs: [],
       banks: [],
+      cnae: null,
+      cnaeDescription: null,
+      parentCompanyId: null,
+      latitude: null,
+      longitude: null,
     });
+  });
+
+  it("CNAE com máscara vira 7 dígitos; tamanho errado é recusado", () => {
+    const ok = companySchema.safeParse(readCompanyForm(form({ ...valid, cnae: "4711-3/02", cnaeDescription: " Supermercados " })));
+    expect(ok.success && ok.data).toMatchObject({ cnae: "4711302", cnaeDescription: "Supermercados" });
+    const bad = companySchema.safeParse(readCompanyForm(form({ ...valid, cnae: "4711-3" })));
+    expect(bad.success).toBe(false);
+    if (!bad.success) expect(issuesToFieldErrors(bad.error).cnae?.[0]).toMatch(/7 dígitos/);
+  });
+
+  it("filial exige matriz; matriz ignora o campo", () => {
+    const parent = "6f1c2b9e-8a7d-4c3b-9e2f-1a2b3c4d5e6f";
+    const missing = companySchema.safeParse(readCompanyForm(form({ ...valid, companyType: "filial" })));
+    expect(missing.success).toBe(false);
+    if (!missing.success) expect(issuesToFieldErrors(missing.error).parentCompanyId).toBeDefined();
+    const filial = companySchema.safeParse(readCompanyForm(form({ ...valid, companyType: "filial", parentCompanyId: parent })));
+    expect(filial.success && filial.data.parentCompanyId).toBe(parent);
+    const matriz = companySchema.safeParse(readCompanyForm(form({ ...valid, companyType: "matriz", parentCompanyId: parent })));
+    expect(matriz.success && matriz.data.parentCompanyId).toBeNull();
+  });
+
+  it("coordenadas: vírgula ou ponto, 6 casas, as duas juntas e dentro do Brasil", () => {
+    const ok = companySchema.safeParse(readCompanyForm(form({ ...valid, latitude: "-23,56141419", longitude: "-46.6558819" })));
+    expect(ok.success && ok.data).toMatchObject({ latitude: -23.561414, longitude: -46.655882 });
+    const half = companySchema.safeParse(readCompanyForm(form({ ...valid, latitude: "-23.5" })));
+    expect(half.success).toBe(false);
+    if (!half.success) expect(issuesToFieldErrors(half.error).longitude).toBeDefined();
+    const abroad = companySchema.safeParse(readCompanyForm(form({ ...valid, latitude: "48.85", longitude: "2.35" })));
+    expect(abroad.success).toBe(false);
+    if (!abroad.success) expect(issuesToFieldErrors(abroad.error).latitude?.[0]).toMatch(/fora do Brasil/);
+    const text = companySchema.safeParse(readCompanyForm(form({ ...valid, latitude: "abc", longitude: "-46" })));
+    expect(text.success).toBe(false);
   });
 
   it("recusa CNPJ com dígito errado e UF ausente", () => {

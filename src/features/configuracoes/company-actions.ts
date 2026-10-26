@@ -32,6 +32,11 @@ const companyRow = (input: CompanyInput, clientId: string | null) => ({
   district: input.district,
   city: input.city,
   uf: input.uf,
+  cnae: input.cnae,
+  cnae_description: input.cnaeDescription,
+  parent_company_id: input.parentCompanyId,
+  latitude: input.latitude,
+  longitude: input.longitude,
   client_id: clientId,
 });
 
@@ -41,7 +46,23 @@ const invalid = (fieldErrors: Record<string, string[]>): ActionResult => ({
   fieldErrors,
 });
 
-/** Valida o formulário e as regras que dependem do banco (CNPJ único, cliente existente). */
+/** Mesma regra do trigger check_company_parent: um nível só (matriz → filiais). */
+async function checkParent(supabase: Supabase, parentId: string | null, companyId: string | null) {
+  if (!parentId) return null;
+  if (parentId === companyId) return "A empresa não pode ser filial dela mesma.";
+  const [parent, children] = await Promise.all([
+    supabase.from("companies").select("id, parent_company_id").eq("id", parentId).maybeSingle(),
+    companyId
+      ? supabase.from("companies").select("id", { count: "exact", head: true }).eq("parent_company_id", companyId)
+      : null,
+  ]);
+  if (!parent.data) return "Matriz não encontrada.";
+  if (parent.data.parent_company_id) return "A matriz escolhida já é filial de outra empresa.";
+  if (children?.count) return "Esta empresa tem filiais; ela não pode virar filial.";
+  return null;
+}
+
+/** Valida o formulário e as regras que dependem do banco (CNPJ único, cliente existente, matriz). */
 async function validate(
   supabase: Supabase,
   formData: FormData,
@@ -54,15 +75,19 @@ async function validate(
   const input = parsed.data;
   let duplicate = supabase.from("companies").select("id").eq("cnpj", input.cnpj);
   if (companyId) duplicate = duplicate.neq("id", companyId);
-  const [dup, client] = await Promise.all([
+  const [dup, client, parentError] = await Promise.all([
     duplicate.maybeSingle(),
     input.clientId ? supabase.from("clients").select("id").eq("id", input.clientId).maybeSingle() : null,
+    checkParent(supabase, input.parentCompanyId, companyId),
   ]);
   if (dup.data) {
     return { error: invalid({ cnpj: ["Já existe uma empresa com este CNPJ."] }) };
   }
   if (client && !client.data) {
     return { error: invalid({ clientId: ["Cliente não encontrado."] }) };
+  }
+  if (parentError) {
+    return { error: invalid({ parentCompanyId: [parentError] }) };
   }
   return { input };
 }
@@ -82,8 +107,14 @@ async function removeClient(supabase: Supabase, id: string) {
   if (error) logger.error({ code: error.code }, "configuracoes: falha ao desfazer cliente criado");
 }
 
-function cnpjConflict(code: string | undefined): ActionResult | null {
-  return code === "23505" ? invalid({ cnpj: ["Já existe uma empresa com este CNPJ."] }) : null;
+/** Erros do banco com mensagem amigável: CNPJ duplicado (23505) e regra matriz/filial (23514). */
+function dbConflict(code: string | undefined, input?: CompanyInput): ActionResult | null {
+  if (code === "23505") return invalid({ cnpj: ["Já existe uma empresa com este CNPJ."] });
+  if (code === "23514" && input?.parentCompanyId) {
+    return invalid({ parentCompanyId: ["Só existe um nível: a matriz não pode ser filial, e empresa com filiais não vira filial."] });
+  }
+  if (code === "23514") return { ok: false, error: "Algum campo está fora do formato aceito. Revise CNAE e coordenadas." };
+  return null;
 }
 
 /** Cria empresa (+ cliente novo, ECs e contas). Se algo falhar, desfaz o que já gravou. */
@@ -105,7 +136,7 @@ export async function createCompany(formData: FormData): Promise<ActionResult> {
   if (error) {
     if (client.created && client.id) await removeClient(supabase, client.id);
     logger.error({ code: error.code }, "configuracoes: falha ao criar empresa");
-    return cnpjConflict(error.code) ?? { ok: false, error: "Não foi possível salvar a empresa. Nada foi gravado." };
+    return dbConflict(error.code, input) ?? { ok: false, error: "Não foi possível salvar a empresa. Nada foi gravado." };
   }
 
   const failed = await insertChildren(supabase, company.id, input);
@@ -149,7 +180,7 @@ export async function updateCompany(companyId: string, formData: FormData): Prom
   if (error || !updated) {
     if (client.created && client.id) await removeClient(supabase, client.id);
     if (error) logger.error({ code: error.code }, "configuracoes: falha ao atualizar empresa");
-    return cnpjConflict(error?.code) ?? { ok: false, error: error ? GENERIC_ERROR : "Empresa não encontrada." };
+    return dbConflict(error?.code, input) ?? { ok: false, error: error ? GENERIC_ERROR : "Empresa não encontrada." };
   }
 
   const failed = await syncChildren(supabase, companyId, input);

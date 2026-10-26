@@ -81,6 +81,34 @@ Importe do arquivo (`@/components/ui/button`) ou do barrel (`@/components/ui`). 
 - Ação destrutiva: botão `danger` e texto explicando o que será perdido.
 - Para focar o primeiro campo ao abrir, use `autoFocus` nele.
 
+### Avisos (toasts) e lembretes
+- Sino na barra superior com contador (`primary`) e painel (Popover API: Esc e clique fora fecham). Lista os lembretes ativos com texto e tempo relativo ("Reunião amanhã às 14:00", "Reunião em 45 minutos").
+- Avisos no canto inferior direito, até 3 por vez, dentro de uma região `aria-live="polite"` que existe desde a montagem. Cada aviso tem rótulo do limiar ("Falta 1 dia", "Falta 1 hora"), link para a agenda e botão X; Esc com foco no aviso também dispensa. Entrada com `motion-safe:animate-pop-in`.
+- Componentes com `position: fixed` não ficam dentro do topo (ele tem `backdrop-filter`): vão por portal para o `<body>` ou pela Popover API.
+
+### Cartão de missão
+- Capa (foto) no topo, etiquetas, título, metadados (prazo, descrição, fotos, checklist, membros).
+- Bolinha de concluir à esquerda do título: aparece ao passar o mouse ou focar o cartão (sempre em telas de toque) e fica verde com check quando concluída; o título fica `muted` e riscado.
+- Menu "…" no canto (Mudar de quadro / lista, Concluir, Arquivar), navegável por setas.
+- A superfície de arrastar/abrir fica atrás do visual; a bolinha e o menu são irmãos dela, nunca botões dentro de botão.
+
+### Mapa de Empresas (`/empresas`)
+- **MapLibre GL** sobre o estilo vetorial escuro **CARTO Dark Matter** (crédito "© OpenStreetMap contributors © CARTO" no controle de atribuição, que fica sempre visível). É a única exceção à regra de "sem imagens externas". Se a CARTO não responder, o mapa usa um estilo mínimo (fundo `bg` + território em `surface`) e avisa "Mapa de ruas indisponível agora".
+- **Estados só como contorno**: linha azul fina (`#3b82f6`, opacidade 0,3–0,55 conforme o zoom); preenchimento `primary` a 10% só no hover e 5% no estado escolhido, com contorno `ring` mais forte. Nunca pintar o estado inteiro.
+- **Pino = mercado no local exato** (latitude/longitude do cadastro): bolinha azul com brilho (`ring`/`accent`) e halo pulsante; pino ativo fica mais claro. Sem coordenadas: anel vazado perto do centro da UF ("local aproximado"). Pinos e grupos são `<button>` com `aria-label` (focáveis por Tab).
+- **Agrupamento** (cluster) ao afastar: círculo `primary` com a contagem; clique aproxima até separar.
+- **Zoom**: roda do mouse/trackpad até o nível da rua (zoom 2,5–18, limitado ao Brasil), botões + e − e teclado (setas, + e −) com o mapa focado. Rotação desligada.
+- **Efeito "entrando na nuvem"**: ao clicar num estado (ou num mercado longe), nuvens brancas/azuladas entram das bordas, cobrem a tela e passam pela câmera enquanto o mapa voa (1,7 s). Ao rolar e cruzar de país → estado ou estado → cidade, versão leve (0,95 s), no máximo uma a cada 1,8 s. Só `transform`/`opacity`, `pointer-events: none`, desligado com `prefers-reduced-motion` (os voos ficam instantâneos).
+- **Card lateral** (`<dialog>` nativo): entra da direita com mola (passa um pouco e volta, 620 ms), fundo desfocado (5 px) e conteúdo em cascata (cabeçalho, etiquetas, blocos de 55 em 55 ms). Sai deslizando (240 ms). Esc, clique fora e X fecham; o foco fica preso e volta ao pino ou item da lista. No celular vira folha que sobe de baixo (90% da altura, alça no topo).
+- Classes globais com prefixo `em-` em `src/features/empresas/components/empresas-map.css` e `company-drawer.css`; tema dos controles do MapLibre em `src/features/empresas/map-theme.css`. O projeto não usa CSS Modules (a regra do Tailwind no Turbopack trata todo `.css` como global).
+
+### Cadastro de empresa
+- "Buscar pelo CNPJ" (botão secundário ao lado do CNPJ) preenche razão social, nome fantasia, CNAE e endereço pela BrasilAPI; nada é salvo sem o usuário revisar. Falha aparece como erro do campo CNPJ.
+- CNAE com máscara `0000-0/00` (fonte mono, `tabular-nums`) e descrição.
+- "Matriz ou filial": botões de rádio; filial pede a matriz (lista só empresas que não são filiais). Empresa com filiais não pode virar filial (opção desabilitada com explicação).
+- "Localização no mapa": botão "Localizar no mapa" (CEP, depois endereço), campos de latitude/longitude e mapa pequeno com pino arrastável; clicar no mapa também move o pino.
+- Lista de empresas: filiais aparecem recuadas sob a matriz, com selo "Matriz · N filiais" / "Filial"; ícone de "sem localização" quando faltam coordenadas.
+
 ### Estados vazios, carregando e erro
 - Lista vazia: `EmptyState` com ícone do módulo, frase do que falta e a ação para criar ("Nenhuma missão neste quadro" + "Nova missão"). Se o usuário não pode criar, omita a ação e diga quem pode.
 - Carregando: `loading.tsx` com esqueletos em `bg-surface-2 animate-pulse` no formato do conteúdo; `Spinner` só em ações pontuais.

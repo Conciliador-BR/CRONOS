@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isValidCnpj, onlyDigits } from "@/lib/format/document";
 import { UFS } from "@/features/empresas/brazil-states";
+import { BRAZIL_LAT, BRAZIL_LNG, roundCoord } from "@/features/empresas/geo";
 import { isValidCpf, readRows, text } from "./form-utils";
 
 /** Texto opcional: vazio vira null; limita o tamanho. */
@@ -54,6 +55,27 @@ export const bankRowSchema = z.object({
   accountType: z.enum(ACCOUNT_TYPES, { error: "Escolha o tipo de conta." }),
 });
 
+export const COMPANY_TYPES = ["matriz", "filial"] as const;
+
+/** Coordenada digitada ("-23,561414" ou "-23.561414"): vazio vira null; arredonda para 6 casas. */
+const coordinate = (label: string, [min, max]: readonly [number, number]) =>
+  z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      if (v === "") return null;
+      const n = Number(v.replace(",", "."));
+      if (!Number.isFinite(n)) {
+        ctx.addIssue({ code: "custom", message: `${label} inválida.` });
+        return z.NEVER;
+      }
+      if (n < min || n > max) {
+        ctx.addIssue({ code: "custom", message: `${label} fora do Brasil.` });
+        return z.NEVER;
+      }
+      return roundCoord(n);
+    });
+
 export const companySchema = z
   .object({
     cnpj: z
@@ -75,6 +97,16 @@ export const companySchema = z
     district: optional(120, "Bairro"),
     city: optional(120, "Cidade"),
     uf: z.enum(UFS, { error: "Escolha a UF." }),
+    cnae: z
+      .string()
+      .transform(onlyDigits)
+      .refine((d) => d === "" || d.length === 7, { error: "O CNAE tem 7 dígitos (0000-0/00)." })
+      .transform((d) => (d === "" ? null : d)),
+    cnaeDescription: optional(200, "Descrição do CNAE"),
+    companyType: z.enum(COMPANY_TYPES, { error: "Escolha matriz ou filial." }),
+    parentCompanyId: z.string().trim(),
+    latitude: coordinate("Latitude", BRAZIL_LAT),
+    longitude: coordinate("Longitude", BRAZIL_LNG),
     clientMode: z.enum(["none", "existing", "new"]),
     clientId: z.string().trim(),
     client: z.unknown(),
@@ -82,6 +114,13 @@ export const companySchema = z
     banks: z.array(bankRowSchema).max(20, { error: "Até 20 contas." }),
   })
   .superRefine((value, ctx) => {
+    if (value.companyType === "filial" && !z.uuid().safeParse(value.parentCompanyId).success) {
+      ctx.addIssue({ code: "custom", path: ["parentCompanyId"], message: "Escolha a matriz desta filial." });
+    }
+    if ((value.latitude === null) !== (value.longitude === null)) {
+      const path = value.latitude === null ? "latitude" : "longitude";
+      ctx.addIssue({ code: "custom", path: [path], message: "Informe latitude e longitude juntas." });
+    }
     if (value.clientMode === "existing" && !z.uuid().safeParse(value.clientId).success) {
       ctx.addIssue({ code: "custom", path: ["clientId"], message: "Escolha um cliente." });
     }
@@ -94,8 +133,9 @@ export const companySchema = z
       }
     }
   })
-  .transform(({ client, clientId, ...rest }) => ({
+  .transform(({ client, clientId, companyType, parentCompanyId, ...rest }) => ({
     ...rest,
+    parentCompanyId: companyType === "filial" ? parentCompanyId : null,
     clientId: rest.clientMode === "existing" ? clientId : null,
     newClient: rest.clientMode === "new" ? clientSchema.parse(client) : null,
   }));
@@ -115,6 +155,12 @@ export function readCompanyForm(formData: FormData) {
     district: text(formData, "district"),
     city: text(formData, "city"),
     uf: text(formData, "uf").toUpperCase(),
+    cnae: text(formData, "cnae"),
+    cnaeDescription: text(formData, "cnaeDescription"),
+    companyType: text(formData, "companyType") || "matriz",
+    parentCompanyId: text(formData, "parentCompanyId"),
+    latitude: text(formData, "latitude"),
+    longitude: text(formData, "longitude"),
     clientMode: text(formData, "clientMode") || "none",
     clientId: text(formData, "clientId"),
     client: readClientForm(formData, "client."),

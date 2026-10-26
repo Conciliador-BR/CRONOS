@@ -8,6 +8,8 @@ Desempenho (dashboard e ranking), CRM (pipeline de leads com arrastar e soltar) 
 
 `leads`, `lead_stage_history` (preenchida por trigger ao mudar `stage`), `sales_goals`, `profiles`, `teams` e a view `seller_performance`. Valores em centavos (`deal_value_cents`, `goal_cents`). Desempenho, Insights, Marketing e Início leem as mesmas tabelas; toda mutação chama `revalidatePath` para `/comercial/*`, `/marketing` e `/inicio`.
 
+Clientes perdidos (Desempenho): leads em `cliente_perdido` com `closed_at` no mês (o trigger grava `closed_at` ao entrar na etapa; é a mesma data que Insights usa). Taxa de perda = perdidos ÷ (fechados + perdidos), `null` (exibido "—") sem negócios decididos. Não há valor estimado de lead no schema (`deal_value_cents` só existe em fechados), então não mostramos valor perdido. A lista linka para `/comercial/crm?lead=<id>`, que abre a gaveta do lead e limpa o parâmetro.
+
 Meses são contados no fuso de São Paulo (UTC−03:00): um negócio fechado às 22h do dia 31 conta naquele mês.
 
 ## Consultas para outros módulos (`queries.ts`, server-only)
@@ -49,10 +51,11 @@ src/features/comercial/
   queries.ts              getPipelineData, getActiveMembers, getLeadHistory, getLeadSourceStats, getOpenLeadsCount
   performance-queries.ts  getPerformanceData(month)
   insights-queries.ts     getInsightsData(period)
-  lib/                    Lógica pura com testes Vitest: meses, posições, ranking/comissão/meta,
+  lib/                    Lógica pura com testes Vitest: meses, posições, ranking/comissão/meta, perdas (`lost.ts`),
                           transição de etapa, estatísticas de origem/indicadores/motivos, filtros do pipeline
   components/crm/         Quadro (dnd-kit), cards, modais de fechar/perder, novo lead, gaveta do lead
-  components/desempenho/  Seletor de mês, KPIs, ranking, meta x realizado, equipe, card do funcionário, gráfico
+  components/desempenho/  Seletor de mês, KPIs, ranking, meta x realizado, clientes perdidos, equipe, card do funcionário,
+                          gráficos (faturamento x meta; fechados x perdidos)
   components/insights/    Filtro de período, origens, temperatura, indicadores, motivos de perda
 ```
 
@@ -70,4 +73,4 @@ src/features/comercial/
 - Componentes cliente nunca importam `queries.ts`, `*-queries.ts`, `@/lib/auth` ou `@/lib/supabase/server`.
 - Toda Server Action chama `requireMember()` (ou `requireRole(["admin", "gestor"])` para metas e exclusão), valida com Zod e devolve `{ ok: true } | { ok: false, error, fieldErrors? }`. Erros vão para o logger sem dados pessoais.
 - Leituras paginam de 1.000 em 1.000 (`fetchAllRows`), o limite do PostgREST.
-- Cores do gráfico em `components/desempenho/chart-colors.ts` (token `primary` + ciano validado para o fundo escuro).
+- Cores do gráfico em `components/desempenho/chart-colors.ts` (token `primary`, ciano da meta e laranja dos perdidos, validados para o fundo escuro).

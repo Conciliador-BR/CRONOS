@@ -5,13 +5,21 @@ import { CSS } from "@dnd-kit/utilities";
 import type { KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
 import { useBoard } from "./board-context";
+import { CardCompleteToggle } from "./card-complete-toggle";
 import { CardFace } from "./card-face";
+import { CardQuickMenu } from "./card-quick-menu";
+import { useCardCommands } from "./use-card-commands";
 
 export const TEMP_PREFIX = "tmp-";
 
-/** Cartão arrastável. Clique ou Enter abre os detalhes; Espaço pega para arrastar. */
+/**
+ * Cartão arrastável. Clique ou Enter abre os detalhes; Espaço pega para arrastar.
+ * A superfície de arrasto/abrir fica atrás do visual; a bolinha de concluir e o menu "…"
+ * são irmãos dela (não ficam aninhados num botão) e não iniciam arrasto.
+ */
 export function SortableCard({ id }: { id: string }) {
   const { state, meta, actions } = useBoard();
+  const commands = useCardCommands(id);
   const card = state.cards[id];
   const pending = id.startsWith(TEMP_PREFIX);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -37,7 +45,7 @@ export function SortableCard({ id }: { id: string }) {
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn("list-none", isDragging && "opacity-40")}
+      className={cn("group/card relative list-none", isDragging && "opacity-40", pending && "opacity-70")}
     >
       <div
         {...attributes}
@@ -45,16 +53,22 @@ export function SortableCard({ id }: { id: string }) {
         onKeyDown={onKeyDown}
         onClick={() => !pending && actions.openCard(id)}
         aria-roledescription="cartão arrastável"
-        aria-label={card.title}
+        aria-label={card.completed ? `${card.title} (concluída)` : card.title}
         aria-disabled={pending || undefined}
         className={cn(
-          "block w-full cursor-pointer touch-manipulation rounded-lg",
-          "hover:[&>div]:border-primary/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-          pending && "cursor-progress opacity-70",
+          "absolute inset-0 cursor-pointer touch-manipulation rounded-lg",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+          pending && "cursor-progress",
         )}
-      >
-        <CardFace card={card} labels={labels} assignees={assignees} />
-      </div>
+      />
+      <CardFace
+        card={card}
+        labels={labels}
+        assignees={assignees}
+        className="pointer-events-none group-hover/card:border-primary/60"
+        leading={pending ? undefined : <CardCompleteToggle completed={card.completed} onToggle={commands.toggleCompleted} />}
+        menu={pending ? undefined : <CardQuickMenu cardId={id} />}
+      />
     </li>
   );
 }

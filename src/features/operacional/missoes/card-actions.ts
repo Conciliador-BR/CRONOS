@@ -59,6 +59,9 @@ export async function createCard(input: unknown): Promise<ActionResult<{ card: B
       labelIds: [],
       assigneeIds: [],
       checklist: [],
+      coverAttachmentId: null,
+      coverUrl: null,
+      attachmentCount: 0,
     },
   };
 }

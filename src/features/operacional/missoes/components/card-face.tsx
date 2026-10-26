@@ -1,9 +1,11 @@
-import { AlignLeft, CheckSquare, Clock } from "lucide-react";
+import { AlignLeft, CheckSquare, Clock, ImageIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import type { Member } from "../../shared/types";
 import { DUE_STATUS_LABEL, formatDue, getDueStatus } from "../due";
 import type { BoardCard, BoardLabel } from "../types";
+import { CompletedMark } from "./card-complete-toggle";
 
 const dueTone = {
   completed: "bg-success/20 text-success",
@@ -12,17 +14,25 @@ const dueTone = {
   upcoming: "text-muted",
 } as const;
 
-/** Visual do cartão (sem interação), usado na lista e na sobreposição do arrasto. */
+/**
+ * Visual do cartão, usado na lista e na sobreposição do arrasto.
+ * `leading` (bolinha de concluir) e `menu` (ações rápidas) são os únicos pontos interativos;
+ * sem eles, um cartão concluído mostra só a marca estática.
+ */
 export function CardFace({
   card,
   labels,
   assignees,
   className,
+  leading,
+  menu,
 }: {
   card: BoardCard;
   labels: BoardLabel[];
   assignees: Member[];
   className?: string;
+  leading?: ReactNode;
+  menu?: ReactNode;
 }) {
   const doneCount = card.checklist.filter((item) => item.done).length;
   const total = card.checklist.length;
@@ -31,10 +41,17 @@ export function CardFace({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-surface-2 px-3 py-2 text-left shadow-sm shadow-black/30",
+        "relative overflow-hidden rounded-lg border border-border bg-surface-2 text-left shadow-sm shadow-black/30",
         className,
       )}
     >
+      {card.coverUrl ? (
+        // URL assinada do Storage (muda a cada requisição); next/image otimizaria a cada troca.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={card.coverUrl} alt="" className="block h-32 w-full bg-surface-3 object-cover" loading="lazy" decoding="async" draggable={false} />
+      ) : null}
+      {menu ? <div className="absolute top-1.5 right-1.5">{menu}</div> : null}
+      <div className="px-3 py-2">
       {labels.length > 0 ? (
         <ul className="mb-1.5 flex flex-wrap gap-1" aria-label="Etiquetas">
           {labels.map((label) => (
@@ -45,8 +62,14 @@ export function CardFace({
           ))}
         </ul>
       ) : null}
-      <p className="text-sm break-words text-fg">{card.title}</p>
-      {status || card.description || total > 0 || assignees.length > 0 ? (
+      <div className={cn("flex items-start", menu && "pr-6")}>
+        {leading ?? (card.completed ? <CompletedMark className="mr-1" /> : null)}
+        <p className={cn("min-w-0 text-sm break-words", card.completed ? "text-muted line-through" : "text-fg")}>
+          {card.title}
+          {card.completed ? <span className="sr-only"> (concluída)</span> : null}
+        </p>
+      </div>
+      {status || card.description || total > 0 || assignees.length > 0 || card.attachmentCount > 0 ? (
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
           {status && card.dueAt ? (
             <span className={cn("inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium", dueTone[status])}>
@@ -59,6 +82,13 @@ export function CardFace({
             <span className="text-muted" title="Este cartão tem descrição">
               <AlignLeft aria-hidden className="size-3.5" />
               <span className="sr-only">Tem descrição</span>
+            </span>
+          ) : null}
+          {card.attachmentCount > 0 ? (
+            <span className="inline-flex items-center gap-1 text-muted" title="Fotos anexadas">
+              <ImageIcon aria-hidden className="size-3.5" />
+              <span className="tabular-nums">{card.attachmentCount}</span>
+              <span className="sr-only">{card.attachmentCount === 1 ? "foto" : "fotos"}</span>
             </span>
           ) : null}
           {total > 0 ? (
@@ -89,6 +119,7 @@ export function CardFace({
           ) : null}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

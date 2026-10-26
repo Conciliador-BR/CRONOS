@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildStoragePath,
+  checkCardImage,
+  imageExtension,
+  MB,
   displayFilename,
   formatBytes,
   isAllowedMime,
@@ -68,5 +71,21 @@ describe("matchesImageSignature", () => {
   it("recusa conteúdo trocado e SVG com script", () => {
     expect(matchesImageSignature(new TextEncoder().encode("<html>"), "image/png")).toBe(false);
     expect(matchesImageSignature(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), "image/svg+xml")).toBe(false);
+  });
+});
+
+describe("fotos de cartão", () => {
+  it("aceita PNG, JPG e WebP até 10 MB", () => {
+    expect(checkCardImage({ type: "image/png", size: 1024 })).toBeNull();
+    expect(checkCardImage({ type: "IMAGE/JPEG", size: 10 * MB })).toBeNull();
+    expect(checkCardImage({ type: "image/webp", size: 10 * MB + 1 })).toMatch(/10 MB/);
+    expect(checkCardImage({ type: "image/svg+xml", size: 10 })).toMatch(/formato/);
+    expect(checkCardImage({ type: "image/png", size: 0 })).toMatch(/vazio/);
+  });
+  it("extensão do caminho vem do tipo validado", () => {
+    expect(imageExtension("image/jpeg")).toBe("jpg");
+    expect(imageExtension("image/PNG")).toBe("png");
+    expect(imageExtension("image/webp")).toBe("webp");
+    expect(imageExtension("text/html")).toBe("bin");
   });
 });

@@ -19,13 +19,16 @@ type BoardActions = {
   /** Aplica a mudança na hora e desfaz se a ação no servidor falhar. */
   mutate: (change: (state: BoardState) => BoardState, call: () => Promise<ActionResult>) => Promise<boolean>;
   reportError: (message: string | null) => void;
-  openCard: (id: string | null) => void;
+  /** Abre o cartão; "move" já abre o seletor "Mudar de quadro / lista". */
+  openCard: (id: string | null, focus?: CardFocus) => void;
 };
+
+export type CardFocus = "move";
 
 type BoardContextValue = {
   state: BoardState;
   meta: BoardMeta;
-  ui: { openCardId: string | null; error: string | null };
+  ui: { openCardId: string | null; openCardFocus: CardFocus | null; error: string | null };
   actions: BoardActions;
 };
 
@@ -42,6 +45,7 @@ export function BoardProvider({ data, children }: { data: BoardData; children: R
   const [source, setSource] = useState(data);
   const [state, setState] = useState(() => buildBoardState(data));
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [openCardFocus, setOpenCardFocus] = useState<CardFocus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Dados novos do servidor (revalidação) substituem o estado otimista.
@@ -82,8 +86,16 @@ export function BoardProvider({ data, children }: { data: BoardData; children: R
       value={{
         state,
         meta,
-        ui: { openCardId, error },
-        actions: { setState, mutate, reportError: setError, openCard: setOpenCardId },
+        ui: { openCardId, openCardFocus, error },
+        actions: {
+          setState,
+          mutate,
+          reportError: setError,
+          openCard: (id, focus) => {
+            setOpenCardId(id);
+            setOpenCardFocus(id && focus ? focus : null);
+          },
+        },
       }}
     >
       {children}

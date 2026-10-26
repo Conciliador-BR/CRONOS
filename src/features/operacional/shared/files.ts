@@ -5,10 +5,12 @@ export const MAX_DOCUMENT_BYTES = 50 * MB;
 export const MAX_LOGO_BYTES = 2 * MB;
 export const MAX_COVER_BYTES = 2 * MB;
 export const MAX_VIDEO_BYTES = 50 * MB;
+export const MAX_CARD_IMAGE_BYTES = 10 * MB;
 
 // SVG fica de fora: pode carregar script se aberto direto pela URL assinada.
 export const LOGO_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export const COVER_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+export const CARD_IMAGE_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"] as const;
 
 const DIACRITICS = /[\u0300-\u036f]/g;
@@ -62,6 +64,21 @@ export function isAllowedMime(type: string, allowed: readonly string[]): boolean
 /** Caminho gerado no servidor: <pasta>/<uuid>-<nome-saneado>. */
 export function buildStoragePath(folder: string, uuid: string, filename: string): string {
   return `${folder}/${uuid}-${sanitizeFilename(filename)}`;
+}
+
+const IMAGE_EXTENSIONS: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+
+/** Extensão para o caminho no Storage a partir do tipo (já validado). */
+export function imageExtension(type: string): string {
+  return IMAGE_EXTENSIONS[type.toLowerCase()] ?? "bin";
+}
+
+/** Checagem rápida no navegador antes de enviar uma foto de cartão (o servidor confere de novo). */
+export function checkCardImage(file: { type: string; size: number }): string | null {
+  if (!isAllowedMime(file.type, CARD_IMAGE_MIME_TYPES)) return "formato não aceito. Use PNG, JPG ou WebP.";
+  if (file.size <= 0) return "arquivo vazio.";
+  if (file.size > MAX_CARD_IMAGE_BYTES) return "a imagem pode ter até 10 MB.";
+  return null;
 }
 
 /** Garante que o caminho pertence à pasta esperada e não tenta sair dela. */

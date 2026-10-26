@@ -13,6 +13,9 @@ const card = (id: string, listId: string, position: number): BoardCard => ({
   labelIds: [],
   assigneeIds: [],
   checklist: [],
+  coverAttachmentId: null,
+  coverUrl: null,
+  attachmentCount: 0,
 });
 
 const base = buildBoardState({

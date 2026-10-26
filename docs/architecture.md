@@ -37,7 +37,7 @@ src/
       shell-context.tsx            <ShellProvider>, useShell() {state, actions}
       sidebar.tsx                  Menu lateral (recolhível no desktop, gaveta no celular)
       mobile-menu-button.tsx       Botão que abre a gaveta no celular
-      top-bar.tsx                  Nome, papel, iniciais, botão Sair (form POST)
+      top-bar.tsx                  Sino de lembretes, nome, papel, iniciais, botão Sair (form POST)
       section-tabs.tsx             <SectionTabs label items> abas por rota
       operacional-menu.tsx         <OperacionalMenu title items> botão ≡ + gaveta
       page-header.tsx              <PageHeader>, <PagePlaceholder>
@@ -89,8 +89,8 @@ Papéis (`app_role`): `admin`, `gestor`, `funcionario`.
 | Módulo | Tabelas | Regras de acesso (RLS) |
 |---|---|---|
 | Pessoas | `profiles`, `teams`, `sales_goals` | Membros leem; perfil edita a si (campos pessoais); admin edita qualquer um; gestor escreve times e metas |
-| Empresas / Configurações | `clients`, `companies`, `company_ec_numbers`, `company_bank_accounts`, `company_documents` | Membros leem clientes, empresas e ECs; contas bancárias e documentos só gestor; escrita só gestor |
-| Operacional · Missões | `boards`, `board_lists`, `cards`, `labels`, `card_labels`, `card_assignees`, `card_checklist_items` | Colaborativo: qualquer membro lê e escreve |
+| Empresas / Configurações | `clients`, `companies` (CNAE, `parent_company_id` matriz → filial, `latitude`/`longitude`), `company_ec_numbers`, `company_bank_accounts`, `company_documents` | Membros leem clientes, empresas e ECs; contas bancárias e documentos só gestor; escrita só gestor. Trigger `check_company_parent` garante um nível só (filial não é matriz; empresa com filiais não vira filial) |
+| Operacional · Missões | `boards`, `board_lists`, `cards`, `labels`, `card_labels`, `card_assignees`, `card_checklist_items`, `card_attachments` | Colaborativo: qualquer membro lê e escreve. Fotos (`card_attachments`): membros leem e anexam (como `created_by`); exclui quem enviou ou gestor; sem update. Capa em `cards.cover_attachment_id` |
 | Operacional · Agenda | `events`, `event_attendees` | Todos leem; cria quem é membro (como `created_by`); edita/exclui o criador ou gestor |
 | Operacional · Documentações | `acquirers`, `acquirer_documents`, `acquirer_notes` | Membros leem, anexam e escrevem notas; cards de adquirente só gestor |
 | Operacional · Cursos | `courses`, `course_modules`, `lessons`, `lesson_progress` | Membros veem cursos publicados; gestor gerencia; progresso é de cada um |
@@ -111,6 +111,7 @@ Todos os buckets são privados; download por URL assinada de curta duração, ca
 | `acquirer-logos` | Logos das adquirentes | 2 MB, imagens | Membros leem; gestor envia |
 | `course-videos` | Vídeos das aulas | 50 MB, mp4/webm/mov | Membros leem; gestor envia |
 | `avatars` | Fotos de perfil | 5 MB, imagens | Membros leem; dono (ou admin) envia |
+| `card-images` | Fotos dos cartões (`<card_id>/<uuid>.<ext>`) | 10 MB, PNG/JPG/WebP | Membros leem e enviam; exclui quem enviou ou gestor |
 
 ## Decisões
 
@@ -118,6 +119,9 @@ Todos os buckets são privados; download por URL assinada de curta duração, ca
 - **`cacheComponents` desligado.** Quase toda página lê o cookie de sessão para montar o shell e respeitar RLS, então quase nada seria estático; ativar exigiria `Suspense` em volta de cada leitura sem ganho real.
 - **Dinheiro em centavos** (`integer`/`number` inteiro: `deal_value_cents`, `goal_cents`, `revenue_cents`) e formatação só na borda (`lib/format/money.ts`). Evita erro de ponto flutuante em somas e comissões.
 - **Grupo de rotas `(app)`** para compartilhar o shell e a checagem de sessão sem mudar as URLs.
+- **Lembretes no shell** (`features/lembretes`). O layout `(app)` chama `getMyReminders()` sem `await` e passa a promessa ao topo; o sino resolve dentro de um `Suspense`, então a página não espera. A consulta pega reuniões em que o usuário é criador ou convidado e tarefas atribuídas a ele nas próximas 25 h. Os limiares ("falta 1 dia", "falta 1 hora") são calculados no navegador com um relógio que acorda no próximo limiar; a lista é atualizada por Server Action a cada 5 min e ao voltar à aba. Dispensas ficam no `localStorage` (por evento + limiar + horário). Não há push nem e-mail: o aviso aparece com o app aberto.
+- **Mapa de Empresas com MapLibre GL** (`features/empresas/components/company-map.tsx`). A biblioteca é carregada com `import()` dentro de `useEffect` (nunca no servidor). Estilo base: CARTO Dark Matter, baixado com tempo limite; se falhar, estilo mínimo local (`map-style.ts`). Contornos das UFs em `public/geo/br-uf.json` (malha do IBGE simplificada, via [giuliano-oliveira/geodata-br-states](https://github.com/giuliano-oliveira/geodata-br-states)); caixas e centros por UF ficam em `uf-geo.ts` para voar sem esperar o GeoJSON. Pinos e grupos são marcadores HTML lidos da fonte GeoJSON com `cluster` (não dependem de fontes de texto do estilo). Empresa sem coordenadas aparece perto do centro da UF (`geo.ts`).
+- **Consultas externas só no servidor** (`features/configuracoes/lookup-actions.ts`, só admin/gestor): BrasilAPI CNPJ (pré-preenche o cadastro), BrasilAPI CEP v2 e Nominatim/OpenStreetMap (coordenadas, com `User-Agent` "CRONOS-CRM/1.0"). Tempo limite de 8 s; respostas validadas com Zod em `lookup-parsers.ts` e nunca gravadas sem o usuário salvar o formulário.
 - **Redirecionamento em `page.tsx`** das seções (`/operacional`, `/comercial`, `/configuracoes`) para a primeira subpágina, mantendo o item do menu lateral apontando para a raiz da seção.
 
 ## Convenções

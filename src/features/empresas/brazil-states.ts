@@ -37,7 +37,7 @@ export function isUf(value: string): value is Uf {
   return Object.hasOwn(UF_NAMES, value);
 }
 
-/** Converte o id do @svg-maps/brazil ("sp") ou texto livre na UF ("SP"); null se não reconhecer. */
+/** Converte texto livre ("sp", " SP ") na UF ("SP"); null se não reconhecer. */
 export function toUf(value: string | null | undefined): Uf | null {
   const upper = (value ?? "").trim().toUpperCase();
   return isUf(upper) ? upper : null;

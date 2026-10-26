@@ -3,7 +3,7 @@ import { z } from "zod";
 import { PageHeader } from "@/components/layout/page-header";
 import { Alert } from "@/components/ui/alert";
 import { toUf } from "@/features/empresas/brazil-states";
-import { CompanyDetailDrawer } from "@/features/empresas/components/company-detail-drawer";
+import { CompanyDrawer } from "@/features/empresas/components/company-drawer";
 import { EmpresasExplorer } from "@/features/empresas/components/empresas-explorer";
 import { getCompanyDetail, getCompanySummaries } from "@/features/empresas/queries";
 
@@ -29,7 +29,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     <>
       <PageHeader
         title="Empresas"
-        description="Estados atendidos em destaque. Escolha um estado para ver os mercados e abra um mercado para ver os dados do cliente."
+        description="Cada ponto é um mercado no local exato. Role para aproximar, clique num estado para entrar nele e num ponto para ver os dados."
       />
       {missing ? (
         <Alert tone="warning" title="Empresa não encontrada" className="mb-4">
@@ -37,7 +37,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
         </Alert>
       ) : null}
       <EmpresasExplorer companies={companies} initialUf={uf} activeCompanyId={detail?.company.id ?? null} />
-      <CompanyDetailDrawer detail={detail} closeHref={uf ? `/empresas?uf=${uf}` : "/empresas"} />
+      <CompanyDrawer detail={detail} />
     </>
   );
 }

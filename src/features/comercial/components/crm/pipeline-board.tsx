@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -37,7 +38,7 @@ type Props = {
   canManage: boolean;
 };
 
-/** Pipeline do CRM: filtros, colunas com arrastar e soltar, perguntas ao fechar/perder e gaveta do lead. */
+/** Pipeline do CRM: filtros, colunas com arrastar e soltar, perguntas ao fechar/perder e gaveta do lead (`?lead=<id>`). */
 export function PipelineBoard({ leads, members, currentUserId, canManage }: Props) {
   const board = usePipelineDnd(leads);
   const [filters, setFilters] = useState<PipelineFilters>(EMPTY_FILTERS);
@@ -64,6 +65,16 @@ export function PipelineBoard({ leads, members, currentUserId, canManage }: Prop
     setSelectedId(leadId);
     setHistoryPromise(loadLeadHistory(leadId));
   }, []);
+
+  // `?lead=<id>` (link de Desempenho/Insights) abre a gaveta do lead uma vez e sai da URL.
+  const searchParams = useSearchParams();
+  const linkedLeadId = searchParams.get("lead");
+  useEffect(() => {
+    if (!linkedLeadId) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    // A URL é o sistema externo: abre a gaveta depois de sincronizá-la, fora do corpo do efeito.
+    if (leads.some((lead) => lead.id === linkedLeadId)) queueMicrotask(() => openLead(linkedLeadId));
+  }, [linkedLeadId, leads, openLead]);
 
   const { columns } = board;
   const visible = useMemo(() => {

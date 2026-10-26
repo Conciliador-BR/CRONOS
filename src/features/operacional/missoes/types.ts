@@ -25,6 +25,22 @@ export type BoardCard = {
   labelIds: string[];
   assigneeIds: string[];
   checklist: ChecklistItem[];
+  /** Foto de capa (uma das anexadas) e URL assinada para exibir no cartão. */
+  coverAttachmentId: string | null;
+  coverUrl: string | null;
+  attachmentCount: number;
+};
+
+/** Foto anexada ao cartão, com URL assinada (1 h). */
+export type CardAttachment = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string | null;
+  createdAt: string;
+  /** Quem enviou ou gestor pode excluir (a RLS confirma). */
+  canDelete: boolean;
 };
 
 /** Quadros e listas para "Mover" o cartão. */

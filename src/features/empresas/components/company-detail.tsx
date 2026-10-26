@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
-import { FileText, Landmark, Lock } from "lucide-react";
+import Link from "next/link";
+import { Building2, ChevronRight, FileText, Landmark, Lock } from "lucide-react";
 import { formatCnpj } from "@/lib/format/document";
+import { cn } from "@/lib/utils";
+import { formatCnae } from "../cnae";
 import { accountTypeLabel, formatAddress, formatBytes, formatCpfCnpj } from "../format";
-import type { CompanyDetail as Detail } from "../queries";
+import type { CompanyDetail as Detail, RelatedCompany } from "../queries";
 import { DocumentDownloadButton } from "./document-download-button";
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" });
@@ -25,11 +28,32 @@ function Item({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-/** Informações cadastradas da empresa e do cliente. Dados restritos só aparecem para admin/gestor. */
-export function CompanyDetail({ detail }: { detail: Detail }) {
-  const { company, ecs, client, restricted } = detail;
+function RelatedLink({ company }: { company: RelatedCompany }) {
   return (
-    <div className="flex flex-col gap-5">
+    <Link
+      href={`/empresas?uf=${company.uf}&empresa=${company.id}`}
+      replace
+      scroll={false}
+      className="group flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-2"
+    >
+      <Building2 aria-hidden className="size-4 shrink-0 text-ring" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium text-fg">{company.name}</span>
+        <span className="block truncate text-xs text-muted">{company.city ? `${company.city}/${company.uf}` : company.uf}</span>
+      </span>
+      <ChevronRight aria-hidden className="size-4 shrink-0 text-muted group-hover:text-fg" />
+    </Link>
+  );
+}
+
+const coordFormat = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+
+/** Informações cadastradas da empresa e do cliente. Dados restritos só aparecem para admin/gestor. */
+export function CompanyDetail({ detail, className }: { detail: Detail; className?: string }) {
+  const { company, ecs, client, restricted, parent, branches } = detail;
+  const located = company.latitude !== null && company.longitude !== null;
+  return (
+    <div className={cn("flex flex-col gap-5", className)}>
       <Section title="Empresa">
         <dl className="grid gap-3 sm:grid-cols-2">
           <Item label="CNPJ" value={<span className="tabular-nums">{formatCnpj(company.cnpj)}</span>} />
@@ -37,10 +61,54 @@ export function CompanyDetail({ detail }: { detail: Detail }) {
           <Item label="Razão social" value={company.legalName} />
           <Item label="Nome fantasia" value={company.tradeName} />
           <div className="sm:col-span-2">
+            <Item
+              label="CNAE principal"
+              value={
+                company.cnae ? (
+                  <>
+                    <span className="font-mono tabular-nums">{formatCnae(company.cnae)}</span>
+                    {company.cnaeDescription ? <span className="text-muted"> · {company.cnaeDescription}</span> : null}
+                  </>
+                ) : null
+              }
+            />
+          </div>
+          <div className="sm:col-span-2">
             <Item label="Endereço" value={formatAddress(company)} />
+          </div>
+          <div className="sm:col-span-2">
+            <Item
+              label="Localização no mapa"
+              value={
+                located ? (
+                  <span className="tabular-nums">
+                    {coordFormat.format(company.latitude!)}, {coordFormat.format(company.longitude!)}
+                  </span>
+                ) : (
+                  <span className="text-muted">Aproximada (sem coordenadas cadastradas)</span>
+                )
+              }
+            />
           </div>
         </dl>
       </Section>
+
+      {parent ? (
+        <Section title="Matriz">
+          <RelatedLink company={parent} />
+        </Section>
+      ) : null}
+      {branches.length > 0 ? (
+        <Section title={branches.length === 1 ? "1 filial" : `${branches.length} filiais`}>
+          <ul className="flex flex-col gap-2">
+            {branches.map((b) => (
+              <li key={b.id}>
+                <RelatedLink company={b} />
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
 
       <Section title="ECs por adquirente">
         {ecs.length === 0 ? (
