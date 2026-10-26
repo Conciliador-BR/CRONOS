@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import { failure, invalid, requireMember } from "../shared/action-utils";
 import type { ActionResult } from "../shared/result";
@@ -133,8 +134,14 @@ export async function deleteCard(input: unknown): Promise<ActionResult> {
   const parsed = idWithBoardSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();
+  // As linhas das fotos somem em cascata; os arquivos do Storage precisam ser removidos à parte.
+  const { data: photos } = await supabase.from("card_attachments").select("storage_path").eq("card_id", parsed.data.id);
   const { error } = await supabase.from("cards").delete().eq("id", parsed.data.id).eq("board_id", parsed.data.boardId);
   if (error) return failure("missoes.deleteCard", error);
+  if (photos?.length) {
+    const { error: storageError } = await supabase.storage.from("card-images").remove(photos.map((p) => p.storage_path));
+    if (storageError) logger.warn({ cardId: parsed.data.id, reason: storageError.message }, "missoes: fotos do cartão ficaram no Storage");
+  }
   revalidatePath(boardPath(parsed.data.boardId));
   return { ok: true };
 }

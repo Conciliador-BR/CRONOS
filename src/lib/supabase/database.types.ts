@@ -422,10 +422,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cards_cover_attachment_id_fkey"
-            columns: ["cover_attachment_id"]
+            columns: ["cover_attachment_id", "id"]
             isOneToOne: false
             referencedRelation: "card_attachments"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "card_id"]
           },
           {
             foreignKeyName: "cards_board_id_fkey"

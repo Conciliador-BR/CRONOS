@@ -13,6 +13,7 @@ import {
 } from "./lookup-parsers";
 
 const TIMEOUT_MS = 8000;
+const MAX_BYTES = 1_000_000;
 const USER_AGENT = "CRONOS-CRM/1.0 (CRM interno; cadastro de empresas)";
 
 type Fetched = { status: number; json: unknown };
@@ -24,8 +25,12 @@ async function getJson(url: string): Promise<Fetched | null> {
       headers: { Accept: "application/json", "User-Agent": USER_AGENT, "Accept-Language": "pt-BR" },
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
+      redirect: "error",
     });
-    const json: unknown = response.ok ? await response.json() : null;
+    if (Number(response.headers.get("content-length") ?? 0) > MAX_BYTES) return { status: 413, json: null };
+    const text = response.ok ? await response.text() : "";
+    if (text.length > MAX_BYTES) return { status: 413, json: null };
+    const json: unknown = text ? JSON.parse(text) : null;
     return { status: response.status, json };
   } catch (error) {
     logger.warn(

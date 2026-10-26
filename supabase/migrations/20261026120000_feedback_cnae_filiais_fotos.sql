@@ -45,7 +45,10 @@ create table public.card_attachments (
   mime_type text not null check (mime_type in ('image/png', 'image/jpeg', 'image/webp')),
   size_bytes integer not null check (size_bytes between 1 and 10485760),
   created_by uuid references public.profiles (id) on delete set null default auth.uid(),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- A foto fica na pasta do próprio cartão: <card_id>/<arquivo>.
+  constraint card_attachments_path_in_card check (split_part(storage_path, '/', 1) = card_id::text),
+  constraint card_attachments_id_card_key unique (id, card_id)
 );
 create index card_attachments_card_id_idx on public.card_attachments (card_id);
 create index card_attachments_created_by_idx on public.card_attachments (created_by);
@@ -60,9 +63,11 @@ create policy card_attachments_delete on public.card_attachments for delete to a
 
 revoke update on public.card_attachments from authenticated;
 
--- Capa do cartão (opcional): uma das fotos anexadas.
+-- Capa do cartão (opcional): uma das fotos do próprio cartão (FK composta garante o mesmo cartão).
 alter table public.cards
-  add column cover_attachment_id uuid references public.card_attachments (id) on delete set null;
+  add column cover_attachment_id uuid,
+  add constraint cards_cover_attachment_id_fkey foreign key (cover_attachment_id, id)
+    references public.card_attachments (id, card_id) on delete set null (cover_attachment_id);
 create index cards_cover_attachment_id_idx on public.cards (cover_attachment_id);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values
@@ -72,6 +77,9 @@ on conflict (id) do nothing;
 create policy storage_card_images_read on storage.objects for select to authenticated
   using (bucket_id = 'card-images' and public.is_member());
 create policy storage_card_images_insert on storage.objects for insert to authenticated
-  with check (bucket_id = 'card-images' and public.is_member());
+  with check (
+    bucket_id = 'card-images' and public.is_member()
+    and exists (select 1 from public.cards c where c.id::text = (storage.foldername(name))[1])
+  );
 create policy storage_card_images_delete on storage.objects for delete to authenticated
   using (bucket_id = 'card-images' and public.is_member() and (owner_id = (select auth.uid())::text or public.is_manager()));

@@ -304,3 +304,16 @@ Antes da FK composta, conferir que não existem cartões inconsistentes (`select
 - Duas aulas do mesmo curso podem apontar para o mesmo `video_path`; excluir uma remove o vídeo da outra. Só gestor; é integridade, não acesso.
 - Quadros, listas, cartões, documentos e notas são editáveis e excluíveis por qualquer membro; é a regra do produto ("colaborativo") e a RLS confirma.
 - `createEvent` grava o evento antes dos participantes; se a inclusão de participantes falhar, o evento fica sem eles e a ação devolve erro. Comportamento aceitável; considerar avisar "evento criado sem participantes".
+
+## Fase 3 — feedback de 26/10 (fotos, lembretes, CNAE, filiais, mapa)
+
+Revisão do commit `a06b0d9` (fotos dos cartões, lembretes, clientes perdidos, consultas BrasilAPI/Nominatim, mapa MapLibre). Nenhum achado crítico ou alto.
+
+| ID | Severidade | Achado | Status |
+| --- | --- | --- | --- |
+| S3-01 | Média-baixa | Upload direto no Storage `card-images` aceitava qualquer caminho, e `card_attachments` aceitava `storage_path` de outro cartão | Corrigido na migration `20261026120000`: o caminho tem que começar pelo id de um cartão existente, e `check` exige `storage_path` dentro da pasta do `card_id` |
+| S3-02 | Baixa | `cards.cover_attachment_id` podia apontar para foto de outro cartão via PostgREST | Corrigido: FK composta `(cover_attachment_id, id) → card_attachments (id, card_id)` |
+| S3-03 | Baixa | Excluir cartão deixava as fotos no Storage | Corrigido em `deleteCard` (remove os arquivos depois da exclusão) |
+| S3-04 | Baixa | Consultas externas seguiam redirecionamento e liam corpo sem limite | Corrigido: `redirect: "error"` e limite de 1 MB |
+
+Conferido sem achado: `requireMember`/`requireRole` em todas as ações novas; validação de imagem por bytes mágicos e caminho gerado no servidor; CNPJ e CEP reduzidos a dígitos antes de montar a URL; lembretes filtrados pelo usuário atual; nomes de empresa no mapa só por `textContent`/atributos (sem HTML); `.json` fora do proxy só serve `public/geo/br-uf.json`.
