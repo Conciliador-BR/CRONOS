@@ -39,8 +39,24 @@ Nunca versione `.env.local` nem cole a service role em chats ou issues.
 
 ## Verificar
 
-`pnpm check` roda lint, tipos, testes e build. Testes unitários não precisam de credenciais; o build precisa só das variáveis públicas.
+`pnpm check` roda lint, tipos, lint tipado, self-check das regras, testes e build. Testes unitários não precisam de credenciais; o build precisa só das variáveis públicas.
 
 ## Agentes
 
 Leia [AGENTS.md](../AGENTS.md). [CLAUDE.md](../CLAUDE.md) importa as mesmas instruções. Skills locais e integrações em [setup.md](setup.md).
+
+Depois de puxar mudanças, rode `pnpm install` de novo se `package.json` ou `pnpm-lock.yaml` mudaram.
+
+### Na máquina (Windows, uma vez)
+
+As skills vêm no repositório (`.claude/skills`). Os plugins (Superpowers, Ponytail, Caveman, Context7) estão declarados em `.claude/settings.json`: ao abrir o Claude Code no projeto, aceite a confiança da pasta e a instalação dos plugins; confira com `/plugin` e `/skills` numa conversa nova.
+
+Ferramentas globais opcionais, cada uma com efeito fora do projeto:
+
+| Ferramenta | Comando (PowerShell) | Efeito |
+|---|---|---|
+| RTK | `winget install rtk-ai.rtk` e depois `rtk init -g` | Instala o binário e registra o hook no `settings.json` do usuário do Claude Code |
+| Graphify | `winget install astral-sh.uv` (se faltar) e `uv tool install "graphifyy[sql]"`; gerar com `$env:GRAPHIFY_NO_AUTO_REFRESH='1'; graphify extract . --code-only --no-cluster` | CLI isolado no uv; saída em `graphify-out/` (ignorado pelo Git) |
+| agent-browser | `npm i -g agent-browser` e `agent-browser install` | CLI global + navegador controlado, usado pela skill `next-dev-loop` |
+
+Não rode `graphify install` nem hooks de Git: o projeto não usa atualização automática do grafo.
