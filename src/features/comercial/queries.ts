@@ -92,18 +92,14 @@ function toPipelineLead(row: LeadRow): PipelineLead {
  * Se a leitura falhar, registra um aviso e usa os nomes padrão para não derrubar a página.
  */
 export const getStageLabels = cache(async (): Promise<StageLabels> => {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.from("pipeline_stage_labels").select("stage, label");
-    if (error) {
-      logger.warn({ scope: "stage-labels", code: error.code, message: error.message }, "comercial: nomes das etapas padrão");
-      return mergeStageLabels(null);
-    }
-    return mergeStageLabels(data);
-  } catch (error) {
-    logger.warn({ scope: "stage-labels", message: error instanceof Error ? error.message : String(error) }, "comercial: nomes das etapas padrão");
+  // Sem try/catch: cookies() lança um sinal interno do Next que precisa subir (rota dinâmica).
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("pipeline_stage_labels").select("stage, label");
+  if (error) {
+    logger.warn({ scope: "stage-labels", code: error.code, message: error.message }, "comercial: nomes das etapas padrão");
     return mergeStageLabels(null);
   }
+  return mergeStageLabels(data);
 });
 
 export type PipelineData = {
