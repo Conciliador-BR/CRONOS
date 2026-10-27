@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Só em `next dev`: libera aparelhos da rede local (192.168.x.x, 10.x.x.x, 172.16-31.x.x) a carregar o app.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", ...Array.from({ length: 16 }, (_, i) => `172.${16 + i}.*.*`)],
   // cacheComponents fica desligado: quase toda página lê a sessão (cookies) do Supabase.
   turbopack: {
     rules: {
