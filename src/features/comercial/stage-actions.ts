@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { invalid, requireManager, revalidateComercial, stageFailure } from "./action-helpers";
+import { invalid, requireManager, revalidateComercial, stageFailure, type DbError } from "./action-helpers";
 import { planStageDeletion, positionForNewStage, toStageKind } from "./lib/stages";
 import {
   createStageSchema,
@@ -107,7 +107,10 @@ export async function deleteStage(input: DeleteStageInput): Promise<ActionResult
   }
 
   // Move os leads e apaga a coluna numa única transação (função no banco).
-  const { error } = await supabase.rpc("delete_pipeline_stage", { p_stage_id: id, p_move_to: plan.moveLeadsTo ?? undefined });
+  const rpc = await supabase.rpc("delete_pipeline_stage", { p_stage_id: id, p_move_to: plan.moveLeadsTo ?? undefined });
+  let error: DbError = rpc.error;
+  // PGRST202: função ainda não criada no banco (migration 20261027190000 pendente). Faz em duas etapas.
+  if (error?.code === "PGRST202") error = await deleteStageInSteps(supabase, id, plan.moveLeadsTo);
   if (error) {
     revalidateComercial();
     return error.code === "P0002" ? { ok: false, error: STALE } : stageFailure("delete-stage", error);
@@ -115,4 +118,19 @@ export async function deleteStage(input: DeleteStageInput): Promise<ActionResult
 
   revalidateComercial();
   return { ok: true };
+}
+
+/** Caminho antigo (sem transação), usado só enquanto a função do banco não existir. */
+async function deleteStageInSteps(
+  supabase: Supabase,
+  id: string,
+  moveLeadsTo: string | null,
+): Promise<DbError> {
+  if (moveLeadsTo) {
+    const { error } = await supabase.from("leads").update({ stage_id: moveLeadsTo }).eq("stage_id", id);
+    if (error) return error;
+  }
+  const { data, error } = await supabase.from("pipeline_stages").delete().eq("id", id).select("id");
+  if (error) return error;
+  return data?.length ? null : { code: "P0002", message: "Etapa não encontrada." };
 }
