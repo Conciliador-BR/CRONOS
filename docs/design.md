@@ -94,6 +94,11 @@ Importe do arquivo (`@/components/ui/button`) ou do barrel (`@/components/ui`). 
 - A superfície de arrastar/abrir fica atrás do visual; a bolinha e o menu são irmãos dela, nunca botões dentro de botão.
 - No quadro, um botão flutuante "Mudar de quadro" fica embaixo, no centro (como no Trello), e abre a lista de quadros para trocar de quadro. As listas têm folga inferior para o botão não cobrir cartões.
 
+### Fundos das Missões
+- **Papel de parede** (botão "Papel de parede" no topo de `/operacional/missoes`, só para quem escolheu): a foto é a última camada de toda a área de conteúdo, `cover`, presa à janela, com véu escuro (72–86%) para o texto manter contraste.
+- **Imagem do quadro** ("Quadro e fundo" no cabeçalho do quadro ou a engrenagem do bloco): a foto é a última camada do quadro, com a cor do quadro por cima como véu translúcido (e como reserva sem foto). Os blocos da grade mostram a foto como miniatura. Listas e cartões continuam com superfície própria.
+- Escolher / Trocar / Remover salvam na hora; "Enviando imagem…" e erros ficam logo abaixo dos botões.
+
 ### Mapa de Empresas (`/empresas`)
 - **MapLibre GL** sobre o estilo vetorial escuro **CARTO Dark Matter** (crédito "© OpenStreetMap contributors © CARTO" no controle de atribuição, que fica sempre visível). É a única exceção à regra de "sem imagens externas". Se a CARTO não responder, o mapa usa um estilo mínimo (fundo `bg` + território em `surface`) e avisa "Mapa de ruas indisponível agora".
 - **Estados só como contorno**: linha azul fina (`#3b82f6`, opacidade 0,3–0,55 conforme o zoom); preenchimento `primary` a 10% só no hover e 5% no estado escolhido, com contorno `ring` mais forte. Nunca pintar o estado inteiro.

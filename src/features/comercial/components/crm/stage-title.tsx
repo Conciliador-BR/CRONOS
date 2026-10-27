@@ -1,33 +1,35 @@
 "use client";
 
-import { useRef, useState, useTransition, type KeyboardEvent } from "react";
-import { Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useImperativeHandle, useRef, useState, useTransition, type KeyboardEvent, type Ref } from "react";
 import { Input } from "@/components/ui/input";
-import type { PipelineStage } from "../../constants";
-import { STAGE_LABEL_MAX } from "../../lib/stage-labels";
+import { STAGE_LABEL_MAX } from "../../lib/stages";
 import type { ActionResult } from "../../types";
 
-export type RenameStage = (stage: PipelineStage, label: string) => Promise<ActionResult>;
+export type RenameStage = (stageId: string, label: string) => Promise<ActionResult>;
+
+/** Abre o campo de nome (chamado pelo item "Renomear" do menu da coluna). */
+export type StageTitleHandle = { startEditing: () => void };
 
 type Props = {
-  stage: PipelineStage;
+  stageId: string;
   label: string;
   headingId: string;
-  /** Só admin/gestor recebem `onRename`; sem ele, nada de botão de renomear. */
+  /** Só admin/gestor recebem `onRename`; sem ele, o título não é editável. */
   onRename?: RenameStage;
+  /** Para onde o foco volta ao fechar o campo com Enter/Esc (o botão do menu da coluna). */
+  onReturnFocus?: () => void;
+  ref?: Ref<StageTitleHandle>;
 };
 
 /**
- * Título da coluna. Gestores clicam no lápis para renomear a etapa ali mesmo:
- * Enter ou sair do campo salva, Esc cancela. Se o servidor recusar, o nome volta e o erro aparece ao lado do campo.
+ * Título da coluna. Gestores renomeiam pelo menu da coluna, ali mesmo: Enter ou sair do campo
+ * salva, Esc cancela. Se o servidor recusar, o nome volta e o erro aparece ao lado do campo.
  */
-export function StageTitle({ stage, label, headingId, onRename }: Props) {
+export function StageTitle({ stageId, label, headingId, onRename, onReturnFocus, ref }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(label);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const buttonRef = useRef<HTMLButtonElement>(null);
   /** Evita salvar de novo no blur depois de Enter/Esc já terem fechado o campo. */
   const closingRef = useRef(false);
   const errorId = `${headingId}-erro`;
@@ -39,10 +41,12 @@ export function StageTitle({ stage, label, headingId, onRename }: Props) {
     setEditing(true);
   }
 
+  useImperativeHandle(ref, () => ({ startEditing: open }));
+
   function close(returnFocus: boolean) {
     closingRef.current = true;
     setEditing(false);
-    if (returnFocus) requestAnimationFrame(() => buttonRef.current?.focus());
+    if (returnFocus && onReturnFocus) requestAnimationFrame(onReturnFocus);
   }
 
   function cancel() {
@@ -61,7 +65,7 @@ export function StageTitle({ stage, label, headingId, onRename }: Props) {
     close(returnFocus);
     if (next === label) return;
     startTransition(async () => {
-      const result = await onRename(stage, next);
+      const result = await onRename(stageId, next);
       if (!result.ok) {
         closingRef.current = false;
         setDraft(next);
@@ -121,19 +125,6 @@ export function StageTitle({ stage, label, headingId, onRename }: Props) {
       >
         {label}
       </h2>
-      {onRename ? (
-        <Button
-          ref={buttonRef}
-          variant="ghost"
-          size="icon"
-          onClick={open}
-          aria-label={`Renomear etapa ${label}`}
-          title="Renomear etapa"
-          className="size-7 [&_svg]:size-3.5"
-        >
-          <Pencil aria-hidden />
-        </Button>
-      ) : null}
     </>
   );
 }

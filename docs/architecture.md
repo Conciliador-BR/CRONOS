@@ -90,14 +90,14 @@ Papéis (`app_role`): `admin`, `gestor`, `funcionario`.
 |---|---|---|
 | Pessoas | `profiles`, `teams`, `sales_goals` | Membros leem; perfil edita a si (campos pessoais); admin edita qualquer um; gestor escreve times e metas |
 | Empresas / Configurações | `clients`, `companies` (CNAE, `parent_company_id` matriz → filial, `latitude`/`longitude`), `company_ec_numbers`, `company_bank_accounts`, `company_documents` | Membros leem clientes, empresas e ECs; contas bancárias e documentos só gestor; escrita só gestor. Trigger `check_company_parent` garante um nível só (filial não é matriz; empresa com filiais não vira filial) |
-| Operacional · Missões | `boards`, `board_lists`, `cards`, `labels`, `card_labels`, `card_assignees`, `card_checklist_items`, `card_attachments` | Colaborativo: qualquer membro lê e escreve. Fotos (`card_attachments`): membros leem e anexam (como `created_by`); exclui quem enviou ou gestor; sem update. Capa em `cards.cover_attachment_id` |
+| Operacional · Missões | `boards` (`background_image_path`), `board_lists`, `cards`, `labels`, `card_labels`, `card_assignees`, `card_checklist_items`, `card_attachments`, `user_preferences` | Colaborativo: qualquer membro lê e escreve. Fotos (`card_attachments`): membros leem e anexam (como `created_by`); exclui quem enviou ou gestor; sem update. Capa em `cards.cover_attachment_id`. `user_preferences` (papel de parede das Missões): cada membro lê e grava só a própria linha |
 | Operacional · Agenda | `events`, `event_attendees` | Todos leem; cria quem é membro (como `created_by`); edita/exclui o criador ou gestor |
 | Operacional · Documentações | `acquirers`, `acquirer_documents`, `acquirer_notes` | Membros leem, anexam e escrevem notas; cards de adquirente só gestor |
 | Operacional · Cursos | `courses`, `course_modules`, `lessons`, `lesson_progress` | Membros veem cursos publicados; gestor gerencia; progresso é de cada um |
 | Comercial / Marketing | `leads`, `lead_stage_history`, view `seller_performance` | Todos leem (ranking/insights); cria membro; altera dono, criador ou gestor; exclui gestor. Histórico de etapa preenchido por trigger |
-| Comercial (etapas) | `pipeline_stage_labels` (uma linha por `pipeline_stage`: `label` 1–40, `updated_by`) | Membros leem; admin/gestor renomeiam (só `update`; ninguém insere nem apaga). A etapa (enum) continua a chave; só o nome exibido muda |
+| Comercial (etapas) | `pipeline_stages` (colunas: `label` 1–40, `position`, `kind` aberto/fechado/perdido, `legacy_stage`); `leads.stage_id` → coluna (`on delete restrict`); histórico com `from_stage_id`/`to_stage_id` | Membros leem; admin/gestor criam (só `aberto`), renomeiam, reordenam e excluem (só `aberto`; trigger impede apagar a última aberta e mudar o tipo). Uma única coluna `fechado` e uma `perdido`. O trigger `leads_sync_stage` deriva o enum `leads.stage` do tipo da coluna, então checks de fechado/perdido, `closed_at` e `seller_performance` seguem pelo enum. `pipeline_stage_labels` está obsoleta |
 
-Enums: `pipeline_stage` (lead_recebido → diagnostico_feito → reuniao_marcada → follow_up → cliente_fechado | cliente_perdido), `lead_source` (marketing, venda, indicacao, outro), `lead_temperature` (quente, frio), `deal_type` (consultoria_avancada, somente_sistema), `video_source` (upload, drive, youtube).
+Enums: `pipeline_stage` (lead_recebido → diagnostico_feito → reuniao_marcada → follow_up → cliente_fechado | cliente_perdido; hoje derivado de `pipeline_stages.kind`/`legacy_stage`; leads em colunas abertas criadas depois ficam com `lead_recebido`), `lead_source` (marketing, venda, indicacao, outro), `lead_temperature` (quente, frio), `deal_type` (consultoria_avancada, somente_sistema), `video_source` (upload, drive, youtube).
 
 Tipos TypeScript: `src/lib/supabase/database.types.ts`, gerado do banco. Regere depois de cada migration (MCP `generate_typescript_types` ou `supabase gen types typescript`).
 
@@ -113,6 +113,7 @@ Todos os buckets são privados; download por URL assinada de curta duração, ca
 | `course-videos` | Vídeos das aulas | 50 MB, mp4/webm/mov | Membros leem; gestor envia |
 | `avatars` | Fotos de perfil | 5 MB, imagens | Membros leem; dono (ou admin) envia |
 | `card-images` | Fotos dos cartões (`<card_id>/<uuid>.<ext>`) | 10 MB, PNG/JPG/WebP | Membros leem e enviam; exclui quem enviou ou gestor |
+| `wallpapers` | Papel de parede das Missões (`users/<auth.uid>/<uuid>.<ext>`) e fundo do quadro (`boards/<board_id>/<uuid>.<ext>`) | 10 MB, PNG/JPG/WebP | Membros leem; enviam na própria pasta ou na de um quadro existente; excluem os próprios papéis de parede e fundos que enviaram (gestor exclui qualquer fundo) |
 
 ## Decisões
 

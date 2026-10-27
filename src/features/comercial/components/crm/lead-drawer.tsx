@@ -43,7 +43,7 @@ export function LeadDrawer({ lead, members, membersById, canEdit, canDelete, his
               Dados do lead
             </h3>
             {canEdit ? (
-              <LeadEditForm key={`${lead.id}-${lead.stage}`} lead={lead} members={members} />
+              <LeadEditForm key={`${lead.id}-${lead.stageId}`} lead={lead} members={members} />
             ) : (
               <ReadOnlyDetails lead={lead} />
             )}
@@ -69,7 +69,7 @@ function LeadSummary({ lead, owner }: { lead: PipelineLead; owner: MemberOption 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-2/50 p-4 text-sm">
       <div className="flex flex-wrap gap-1.5">
-        <StageBadge stage={lead.stage} />
+        <StageBadge stageId={lead.stageId} stage={lead.stage} />
         <TemperatureBadge temperature={lead.temperature} />
         <SourceBadge source={lead.source} />
       </div>

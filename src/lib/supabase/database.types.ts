@@ -180,6 +180,7 @@ export type Database = {
       boards: {
         Row: {
           background: string
+          background_image_path: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -188,6 +189,7 @@ export type Database = {
         }
         Insert: {
           background?: string
+          background_image_path?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -196,6 +198,7 @@ export type Database = {
         }
         Update: {
           background?: string
+          background_image_path?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -953,25 +956,31 @@ export type Database = {
           changed_at: string
           changed_by: string | null
           from_stage: Database["public"]["Enums"]["pipeline_stage"] | null
+          from_stage_id: string | null
           id: string
           lead_id: string
           to_stage: Database["public"]["Enums"]["pipeline_stage"]
+          to_stage_id: string | null
         }
         Insert: {
           changed_at?: string
           changed_by?: string | null
           from_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          from_stage_id?: string | null
           id?: string
           lead_id: string
           to_stage: Database["public"]["Enums"]["pipeline_stage"]
+          to_stage_id?: string | null
         }
         Update: {
           changed_at?: string
           changed_by?: string | null
           from_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          from_stage_id?: string | null
           id?: string
           lead_id?: string
           to_stage?: Database["public"]["Enums"]["pipeline_stage"]
+          to_stage_id?: string | null
         }
         Relationships: [
           {
@@ -989,10 +998,24 @@ export type Database = {
             referencedColumns: ["profile_id"]
           },
           {
+            foreignKeyName: "lead_stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_stage_history_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -1016,6 +1039,7 @@ export type Database = {
           referrer_name: string | null
           source: Database["public"]["Enums"]["lead_source"]
           stage: Database["public"]["Enums"]["pipeline_stage"]
+          stage_id: string
           temperature: Database["public"]["Enums"]["lead_temperature"]
           updated_at: string
         }
@@ -1037,6 +1061,7 @@ export type Database = {
           referrer_name?: string | null
           source: Database["public"]["Enums"]["lead_source"]
           stage?: Database["public"]["Enums"]["pipeline_stage"]
+          stage_id: string
           temperature: Database["public"]["Enums"]["lead_temperature"]
           updated_at?: string
         }
@@ -1058,6 +1083,7 @@ export type Database = {
           referrer_name?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           stage?: Database["public"]["Enums"]["pipeline_stage"]
+          stage_id?: string
           temperature?: Database["public"]["Enums"]["lead_temperature"]
           updated_at?: string
         }
@@ -1089,6 +1115,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seller_performance"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1212,6 +1245,54 @@ export type Database = {
           },
         ]
       }
+      pipeline_stages: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          label: string
+          legacy_stage: Database["public"]["Enums"]["pipeline_stage"] | null
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          label: string
+          legacy_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          legacy_stage?: Database["public"]["Enums"]["pipeline_stage"] | null
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "seller_performance"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean
@@ -1322,6 +1403,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          missions_wallpaper_path: string | null
+          profile_id: string
+          updated_at: string
+        }
+        Insert: {
+          missions_wallpaper_path?: string | null
+          profile_id?: string
+          updated_at?: string
+        }
+        Update: {
+          missions_wallpaper_path?: string | null
+          profile_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "seller_performance"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
     }
     Views: {
       seller_performance: {
@@ -1349,6 +1463,10 @@ export type Database = {
     }
     Functions: {
       cronos_needs_setup: { Args: never; Returns: boolean }
+      delete_pipeline_stage: {
+        Args: { p_move_to?: string; p_stage_id: string }
+        Returns: number
+      }
       has_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean

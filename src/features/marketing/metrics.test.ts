@@ -6,6 +6,7 @@ const lead = (over: Partial<MarketingLead>): MarketingLead => ({
   name: "L",
   companyName: null,
   stage: "lead_recebido",
+  stageId: "s1",
   temperature: "frio",
   createdAt: "2026-10-10T12:00:00Z",
   dealValueCents: null,

@@ -5,13 +5,12 @@ import Link from "next/link";
 import { useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { updateBoard } from "../board-actions";
+import type { BoardInfo } from "../types";
 import { ArchivedCards, type ArchivedCard } from "./archived-cards";
 import { useBoard } from "./board-context";
 import { BoardFormModal } from "./board-form-modal";
 
-type Board = { id: string; name: string; background: string };
-
-export function BoardHeader({ board, archived }: { board: Board; archived: ArchivedCard[] }) {
+export function BoardHeader({ board, archived }: { board: BoardInfo; archived: ArchivedCard[] }) {
   const { actions } = useBoard();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(board.name);
@@ -82,7 +81,7 @@ export function BoardHeader({ board, archived }: { board: Board; archived: Archi
         <ArchivedCards boardId={board.id} cards={archived} />
         <Button variant="ghost" size="sm" className="text-white/85 hover:bg-white/15 hover:text-white" onClick={() => setSettings(true)}>
           <Palette aria-hidden />
-          Quadro
+          Quadro e fundo
         </Button>
       </div>
       <BoardFormModal

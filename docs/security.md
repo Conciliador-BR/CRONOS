@@ -317,3 +317,15 @@ Revisão do commit `a06b0d9` (fotos dos cartões, lembretes, clientes perdidos, 
 | S3-04 | Baixa | Consultas externas seguiam redirecionamento e liam corpo sem limite | Corrigido: `redirect: "error"` e limite de 1 MB |
 
 Conferido sem achado: `requireMember`/`requireRole` em todas as ações novas; validação de imagem por bytes mágicos e caminho gerado no servidor; CNPJ e CEP reduzidos a dígitos antes de montar a URL; lembretes filtrados pelo usuário atual; nomes de empresa no mapa só por `textContent`/atributos (sem HTML); `.json` fora do proxy só serve `public/geo/br-uf.json`.
+
+## Fase 4 — etapas do CRM e fundos das Missões (27/10)
+
+Revisão do commit `af4dd9c`. Nenhum achado crítico ou alto.
+
+| ID | Severidade | Achado | Status |
+| --- | --- | --- | --- |
+| S4-01 | Baixa | Qualquer membro listava e baixava o papel de parede pessoal de outro (`wallpapers/users/<id>/`) | Corrigido na migration `20261027190000`: `users/` só é lido pelo dono; `boards/` segue para todos os membros |
+| S4-02 | Baixa | Ao trocar o fundo de um quadro enviado por outra pessoa, o arquivo antigo fica no bucket (a RLS só deixa o autor ou gestor apagar); upload direto em `boards/<id>/` pula a checagem de bytes | Aceito: bucket privado com lista de MIME e limite de 10 MB; a sobra é registrada no log |
+| S4-03 | Baixa | Excluir etapa movia os leads e apagava a coluna em duas chamadas | Corrigido: função `delete_pipeline_stage` (invoker, exige gestor) faz tudo numa transação |
+
+Conferido sem achado: ações de etapa só para admin/gestor (ação + RLS); tipo da coluna lido do banco ao fechar/perder; `sync_lead_stage` impede pular as regras de fechado/perdido mesmo via PostgREST; preferências só da própria linha; caminhos de arquivo gerados no servidor; `cssImageUrl` só aceita `https://` e escapa aspas.

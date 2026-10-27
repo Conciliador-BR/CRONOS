@@ -19,6 +19,9 @@ export type PipelineLead = {
   description: string | null;
   ownerId: string | null;
   createdBy: string | null;
+  /** Coluna do pipeline (`pipeline_stages.id`). */
+  stageId: string;
+  /** Enum legado derivado da coluna pelo banco (fechado/perdido/aberto). */
   stage: PipelineStage;
   position: number;
   dealType: DealType | null;
@@ -39,6 +42,9 @@ export type StageHistoryEntry = {
   id: string;
   fromStage: PipelineStage | null;
   toStage: PipelineStage;
+  /** Colunas de origem e destino; null quando a coluna foi excluída. */
+  fromStageId: string | null;
+  toStageId: string | null;
   changedByName: string | null;
   changedAt: string;
 };

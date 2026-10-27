@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useOptimistic, useState } from "react";
+import { Fragment, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   DndContext,
@@ -17,46 +17,42 @@ import { KanbanSquare } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PIPELINE_STAGES, type PipelineStage } from "../../constants";
-import { loadLeadHistory, renameStage } from "../../actions";
-import type { StageLabels } from "../../lib/stage-labels";
-import { EMPTY_FILTERS, findStage, matchesFilters, type PipelineFilters } from "../../lib/pipeline";
+import { loadLeadHistory } from "../../actions";
+import { EMPTY_FILTERS, findColumn, matchesFilters, type Columns, type PipelineFilters } from "../../lib/pipeline";
+import type { StageColumn } from "../../lib/stages";
 import type { DataResult, MemberOption, PipelineLead, StageHistoryEntry } from "../../types";
-import { StageLabelsProvider } from "../shared/stage-labels-context";
+import { StagesProvider } from "../shared/stages-context";
 import { CloseDealModal } from "./close-deal-modal";
+import { DeleteStageModal } from "./delete-stage-modal";
 import { LeadCardContent } from "./lead-card";
 import { LeadDrawer } from "./lead-drawer";
 import { LoseLeadModal } from "./lose-lead-modal";
 import { NewLeadButton } from "./new-lead-modal";
 import { createAnnouncements, screenReaderInstructions } from "./pipeline-announcements";
-import { PipelineColumn } from "./pipeline-column";
+import { NewStageColumn } from "./new-stage-column";
+import { PipelineColumn, type StageControls } from "./pipeline-column";
 import { PipelineFiltersBar } from "./pipeline-filters";
 import { usePipelineDnd } from "./use-pipeline-dnd";
+import { useStageEditor } from "./use-stage-editor";
 
 type Props = {
   leads: PipelineLead[];
   members: MemberOption[];
   currentUserId: string;
   canManage: boolean;
-  /** Nomes das etapas vindos do banco (com os padrões como reserva). */
-  stageLabels: StageLabels;
+  /** Colunas do pipeline (`pipeline_stages`), em ordem. */
+  stages: StageColumn[];
 };
 
-/** Pipeline do CRM: filtros, colunas com arrastar e soltar, perguntas ao fechar/perder e gaveta do lead (`?lead=<id>`). */
-export function PipelineBoard({ leads, members, currentUserId, canManage, stageLabels }: Props) {
-  const board = usePipelineDnd(leads);
-  // Renomear mostra o nome novo na hora; se o servidor recusar, a transição termina e o nome antigo volta.
-  const [labels, setOptimisticLabel] = useOptimistic(
-    stageLabels,
-    (current, change: { stage: PipelineStage; label: string }) => ({ ...current, [change.stage]: change.label }),
-  );
-  const rename = useCallback(
-    (stage: PipelineStage, label: string) => {
-      setOptimisticLabel({ stage, label });
-      return renameStage({ stage, label });
-    },
-    [setOptimisticLabel],
-  );
+/**
+ * Pipeline do CRM: filtros, colunas com arrastar e soltar, perguntas ao fechar/perder, gaveta do lead
+ * (`?lead=<id>`) e, para gestores, criar, renomear, mover e excluir colunas.
+ */
+export function PipelineBoard({ leads, members, currentUserId, canManage, stages: serverStages }: Props) {
+  const editor = useStageEditor(serverStages);
+  const { stages } = editor;
+  const board = usePipelineDnd(leads, stages);
+  const [deleting, setDeleting] = useState<StageColumn | null>(null);
   const [filters, setFilters] = useState<PipelineFilters>(EMPTY_FILTERS);
   const deferredFilters = useDeferredValue(filters);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -70,7 +66,16 @@ export function PipelineBoard({ leads, members, currentUserId, canManage, stageL
   );
 
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
-  const announcements = useMemo(() => createAnnouncements(board.getColumns, labels), [board.getColumns, labels]);
+  const labelOf = useCallback(
+    (stageId: string) => stages.find((stage) => stage.id === stageId)?.label ?? "etapa",
+    [stages],
+  );
+  const announcements = useMemo(() => createAnnouncements(board.getColumns, labelOf), [board.getColumns, labelOf]);
+
+  const controls = useMemo<StageControls | undefined>(
+    () => (canManage ? { onRename: editor.rename, onMove: editor.move, onDelete: setDeleting } : undefined),
+    [canManage, editor.rename, editor.move],
+  );
 
   const canEdit = useCallback(
     (lead: PipelineLead) => canManage || lead.ownerId === currentUserId || lead.createdBy === currentUserId,
@@ -94,31 +99,51 @@ export function PipelineBoard({ leads, members, currentUserId, canManage, stageL
 
   const { columns } = board;
   const visible = useMemo(() => {
-    const result = {} as typeof columns;
-    for (const stage of PIPELINE_STAGES) {
-      result[stage] = columns[stage].filter((lead) => lead.id === board.activeId || matchesFilters(lead, deferredFilters));
+    const result: Columns = {};
+    for (const stage of stages) {
+      result[stage.id] = (columns[stage.id] ?? []).filter(
+        (lead) => lead.id === board.activeId || matchesFilters(lead, deferredFilters),
+      );
     }
     return result;
-  }, [columns, deferredFilters, board.activeId]);
+  }, [stages, columns, deferredFilters, board.activeId]);
 
-  const totalCount = PIPELINE_STAGES.reduce((sum, stage) => sum + columns[stage].length, 0);
-  const visibleCount = PIPELINE_STAGES.reduce((sum, stage) => sum + visible[stage].length, 0);
+  const totalCount = leads.length;
+  const visibleCount = stages.reduce((sum, stage) => sum + (visible[stage.id]?.length ?? 0), 0);
 
-  const selectedStage = selectedId ? findStage(columns, selectedId) : null;
-  const selected = selectedStage ? (columns[selectedStage].find((lead) => lead.id === selectedId) ?? null) : null;
-  const activeStage = board.activeId ? findStage(columns, board.activeId) : null;
-  const activeLead = activeStage ? columns[activeStage].find((lead) => lead.id === board.activeId) : undefined;
+  const leadOf = (id: string | null) => {
+    const stageId = id ? findColumn(columns, id) : null;
+    return (stageId && columns[stageId]?.find((lead) => lead.id === id)) || null;
+  };
+  const selected = leadOf(selectedId);
+  const activeLead = leadOf(board.activeId);
+  // "+ Nova etapa" fica antes da primeira coluna de fechado/perdido.
+  const firstTerminal = stages.findIndex((stage) => stage.kind !== "aberto");
+  const addAt = firstTerminal === -1 ? stages.length : firstTerminal;
 
   const newLead = (
     <NewLeadButton
       members={members}
       currentUserId={currentUserId}
-      onCreated={(name) => setNotice(`Lead ${name} criado em ${labels.lead_recebido}.`)}
+      onCreated={(name) => {
+        const first = stages.find((stage) => stage.kind === "aberto");
+        setNotice(first ? `Lead ${name} criado em ${first.label}.` : `Lead ${name} criado.`);
+      }}
     />
   );
+  const stageError = editor.error ? (
+    <Alert tone="danger" title="A etapa voltou para como estava">
+      <span className="flex flex-wrap items-center gap-2">
+        {editor.error}
+        <Button variant="ghost" size="sm" onClick={editor.dismissError}>
+          Fechar aviso
+        </Button>
+      </span>
+    </Alert>
+  ) : null;
 
   return (
-    <StageLabelsProvider labels={labels}>
+    <StagesProvider stages={stages}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
@@ -143,9 +168,10 @@ export function PipelineBoard({ leads, members, currentUserId, canManage, stageL
             </span>
           </Alert>
         ) : null}
+        {stageError}
         {notice ? <Alert tone="success">{notice}</Alert> : null}
 
-        {totalCount === 0 ? (
+        {totalCount === 0 && !canManage ? (
           <EmptyState
             icon={KanbanSquare}
             title="Nenhum lead no pipeline"
@@ -160,22 +186,30 @@ export function PipelineBoard({ leads, members, currentUserId, canManage, stageL
             {...board.handlers}
           >
             <div
-              aria-busy={board.isSaving || undefined}
+              aria-busy={board.isSaving || editor.isSaving || undefined}
               className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0"
             >
-              {PIPELINE_STAGES.map((stage) => (
-                <PipelineColumn
-                  key={stage}
-                  stage={stage}
-                  label={labels[stage]}
-                  onRename={canManage ? rename : undefined}
-                  leads={visible[stage]}
-                  totalCount={columns[stage].length}
-                  membersById={membersById}
-                  canEdit={canEdit}
-                  onOpen={openLead}
-                />
+              {stages.map((stage, index) => (
+                <Fragment key={stage.id}>
+                  {canManage && index === addAt ? (
+                    <NewStageColumn afterId={stages[index - 1]?.id} onCreate={editor.create} />
+                  ) : null}
+                  <PipelineColumn
+                    stage={stage}
+                    isFirst={index === 0}
+                    isLast={index === stages.length - 1}
+                    controls={controls}
+                    leads={visible[stage.id] ?? []}
+                    totalCount={columns[stage.id]?.length ?? 0}
+                    membersById={membersById}
+                    canEdit={canEdit}
+                    onOpen={openLead}
+                  />
+                </Fragment>
               ))}
+              {canManage && addAt === stages.length ? (
+                <NewStageColumn afterId={stages.at(-1)?.id} onCreate={editor.create} />
+              ) : null}
             </div>
             <DragOverlay>
               {activeLead ? (
@@ -208,7 +242,19 @@ export function PipelineBoard({ leads, members, currentUserId, canManage, stageL
           historyPromise={historyPromise}
           onClose={() => setSelectedId(null)}
         />
+        {canManage ? (
+          <DeleteStageModal
+            stage={deleting}
+            stages={stages}
+            leadCount={deleting ? (columns[deleting.id]?.length ?? 0) : 0}
+            onClose={() => setDeleting(null)}
+            onDeleted={(message) => {
+              setDeleting(null);
+              setNotice(message);
+            }}
+          />
+        ) : null}
       </div>
-    </StageLabelsProvider>
+    </StagesProvider>
   );
 }

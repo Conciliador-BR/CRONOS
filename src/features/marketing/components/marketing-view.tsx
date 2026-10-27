@@ -32,7 +32,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 type Props = {
   leads: MarketingLead[];
   now: Date;
-  /** Nomes atuais das etapas do CRM (renomeáveis por gestores); sem eles, valem os padrões acima. */
+  /** Nomes atuais das colunas do CRM por id (renomeáveis por gestores); sem eles, valem os padrões acima. */
   stageLabels?: Partial<Record<string, string>>;
 };
 
@@ -141,7 +141,7 @@ export function MarketingView({ leads, now, stageLabels }: Props) {
           <ul className="divide-y divide-border">
             {leads.slice(0, 10).map((l) => {
               const fallback = STAGE[l.stage] ?? { label: l.stage, variant: "neutral" as const };
-              const stage = { ...fallback, label: stageLabels?.[l.stage] ?? fallback.label };
+              const stage = { ...fallback, label: stageLabels?.[l.stageId] ?? fallback.label };
               return (
                 <li key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
                   <div className="min-w-0 flex-1 basis-48">

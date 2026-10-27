@@ -10,7 +10,7 @@ export async function getMarketingLeads(): Promise<MarketingLead[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("leads")
-    .select("id, name, company_name, stage, temperature, created_at, deal_value_cents")
+    .select("id, name, company_name, stage, stage_id, temperature, created_at, deal_value_cents")
     .eq("source", "marketing")
     .order("created_at", { ascending: false })
     .limit(2000);
@@ -23,6 +23,7 @@ export async function getMarketingLeads(): Promise<MarketingLead[]> {
     name: l.name,
     companyName: l.company_name,
     stage: l.stage,
+    stageId: l.stage_id,
     temperature: l.temperature,
     createdAt: l.created_at,
     dealValueCents: l.deal_value_cents,

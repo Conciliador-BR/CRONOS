@@ -17,7 +17,7 @@ A equipe usa ferramentas separadas para tarefas (Trello), reuniões (Google Agen
 2. Empresas: mapa do Brasil com um ponto em cada mercado (local exato, zoom até a rua) → estado com a lista de mercados → card lateral com as informações do cliente.
 3. Configurações: cadastrar empresa (CNPJ com busca na BrasilAPI, CNAE, matriz/filial, endereço e localização no mapa, ECs, contas bancárias, PDF) e cliente; cadastrar funcionário com login.
 4. Operacional (menu ≡ no canto superior esquerdo): Missões estilo Trello, Agenda estilo Google Agenda, Documentações de API por adquirente (anexos + bloco de notas), Cursos estilo Hotmart/Hubla.
-5. Comercial: pipeline (lead recebido → diagnóstico → reunião → follow up → fechado/perdido) com perguntas ao fechar/perder; Desempenho (faturamento, clientes perdidos e taxa de perda, equipe, ranking, metas, card do funcionário com gráficos); Insights (origem dos leads, indicadores, motivos de perda).
+5. Comercial: pipeline (lead recebido → diagnóstico → reunião → follow up → fechado/perdido; admin/gestor criam, renomeiam, reordenam e excluem etapas abertas) com perguntas ao fechar/perder; Desempenho (faturamento, clientes perdidos e taxa de perda, equipe, ranking, metas, card do funcionário com gráficos); Insights (origem dos leads, indicadores, motivos de perda).
 
 ## MVP
 

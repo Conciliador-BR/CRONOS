@@ -1,80 +1,53 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { unstable_rethrow } from "next/navigation";
-import { z } from "zod";
-import { requireMember, requireRole } from "@/lib/auth";
-import { logger } from "@/lib/logger";
+import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { COMERCIAL_PATHS } from "./constants";
+import { NO_PERMISSION, dbFailure, invalid, requireManager, revalidateComercial } from "./action-helpers";
 import { POSITION_STEP } from "./lib/positions";
 import { planStageMove } from "./lib/stage-transition";
+import { toStageKind } from "./lib/stages";
 import { getLeadHistory } from "./queries";
 import {
   createLeadSchema,
   leadIdSchema,
   moveLeadSchema,
-  renameStageSchema,
   salesGoalSchema,
   updateLeadSchema,
   type CreateLeadInput,
   type MoveLeadInput,
-  type RenameStageInput,
   type SalesGoalInput,
   type UpdateLeadInput,
 } from "./schemas";
-import type { ActionError, ActionResult, DataResult, StageHistoryEntry } from "./types";
+import type { ActionResult, DataResult, StageHistoryEntry } from "./types";
 import { monthStartDate } from "./lib/months";
-
-type DbError = { code?: string; message: string } | null;
-
-const NO_PERMISSION = "Você não tem permissão para alterar este lead. Só o responsável, quem criou ou um gestor podem.";
-
-function invalid(error: z.ZodError): ActionError {
-  return {
-    ok: false,
-    error: "Revise os campos destacados.",
-    fieldErrors: z.flattenError(error).fieldErrors as Record<string, string[] | undefined>,
-  };
-}
-
-/** Registra o erro (sem dados pessoais) e devolve uma mensagem amigável. */
-function dbFailure(scope: string, error: DbError): ActionError {
-  logger.error({ scope, code: error?.code, message: error?.message }, "comercial: falha ao gravar");
-  if (error?.code === "42501") return { ok: false, error: NO_PERMISSION };
-  if (error?.code === "23514") return { ok: false, error: "Dados incompletos para esta etapa. Revise e tente de novo." };
-  return { ok: false, error: "Não foi possível salvar agora. Tente de novo em instantes." };
-}
-
-function revalidateComercial() {
-  for (const path of COMERCIAL_PATHS) revalidatePath(path);
-}
-
-async function requireManager() {
-  try {
-    return await requireRole(["admin", "gestor"]);
-  } catch (error) {
-    unstable_rethrow(error);
-    return null;
-  }
-}
 
 async function currentStage(supabase: Awaited<ReturnType<typeof createClient>>, leadId: string) {
   const { data, error } = await supabase.from("leads").select("stage").eq("id", leadId).maybeSingle();
   return { stage: data?.stage ?? null, error };
 }
 
-/** Cria um lead em "Lead recebido", no topo da coluna. */
+/** Cria um lead na primeira coluna aberta do pipeline, no topo da coluna. */
 export async function createLead(input: CreateLeadInput): Promise<ActionResult> {
   const profile = await requireMember();
   const parsed = createLeadSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
   const supabase = await createClient();
 
+  const { data: column, error: columnError } = await supabase
+    .from("pipeline_stages")
+    .select("id")
+    .eq("kind", "aberto")
+    .order("position")
+    .order("id")
+    .limit(1)
+    .maybeSingle();
+  if (columnError) return dbFailure("create-lead-stage", columnError);
+  if (!column) return { ok: false, error: "O pipeline não tem etapa aberta. Peça a um gestor para criar uma." };
+
   const { data: first } = await supabase
     .from("leads")
     .select("position")
-    .eq("stage", "lead_recebido")
+    .eq("stage_id", column.id)
     .order("position")
     .limit(1)
     .maybeSingle();
@@ -90,7 +63,7 @@ export async function createLead(input: CreateLeadInput): Promise<ActionResult> 
     temperature: lead.temperature,
     description: lead.description,
     owner_id: lead.ownerId,
-    stage: "lead_recebido",
+    stage_id: column.id,
     position: first ? first.position - POSITION_STEP : 0,
     created_by: profile.id,
   });
@@ -151,8 +124,8 @@ export async function updateLead(input: UpdateLeadInput): Promise<ActionResult> 
 }
 
 /**
- * Move o lead de etapa e/ou posição. Entrar em "Cliente fechado" exige tipo e valor; em
- * "Cliente perdido", o motivo. Sair dessas etapas limpa os campos correspondentes.
+ * Move o lead de coluna e/ou posição. Entrar na coluna de fechado exige tipo e valor; na de
+ * perdido, o motivo (pelo tipo da coluna, lido do banco). Ir para coluna aberta limpa esses campos.
  */
 export async function moveLead(input: MoveLeadInput): Promise<ActionResult> {
   await requireMember();
@@ -161,11 +134,15 @@ export async function moveLead(input: MoveLeadInput): Promise<ActionResult> {
   const supabase = await createClient();
 
   const move = parsed.data;
-  const { stage, error: readError } = await currentStage(supabase, move.leadId);
-  if (readError) return dbFailure("move-lead-read", readError);
-  if (!stage) return { ok: false, error: "Lead não encontrado. Atualize a página." };
+  const [{ data: lead, error: readError }, { data: target, error: targetError }] = await Promise.all([
+    supabase.from("leads").select("stage_id").eq("id", move.leadId).maybeSingle(),
+    supabase.from("pipeline_stages").select("id, kind").eq("id", move.toStageId).maybeSingle(),
+  ]);
+  if (readError || targetError) return dbFailure("move-lead-read", readError ?? targetError);
+  if (!lead) return { ok: false, error: "Lead não encontrado. Atualize a página." };
+  if (!target) return { ok: false, error: "Esta etapa não existe mais. Atualize a página." };
 
-  const plan = planStageMove(stage, move.toStage, move.position, {
+  const plan = planStageMove(lead.stage_id, { id: target.id, kind: toStageKind(target.kind) }, move.position, {
     dealType: move.dealType,
     dealValueCents: move.dealValue,
     lostReason: move.lostReason,
@@ -223,27 +200,6 @@ export async function setSalesGoal(input: SalesGoalInput): Promise<ActionResult>
           .from("sales_goals")
           .upsert({ profile_id: profileId, month: monthDate, goal_cents: goal }, { onConflict: "profile_id,month" });
   if (error) return dbFailure("set-sales-goal", error);
-
-  revalidateComercial();
-  return { ok: true };
-}
-
-/** Renomeia uma etapa do pipeline (só admin/gestor). A etapa continua a mesma; só o nome exibido muda. */
-export async function renameStage(input: RenameStageInput): Promise<ActionResult> {
-  const parsed = renameStageSchema.safeParse(input);
-  if (!parsed.success) return invalid(parsed.error);
-  const profile = await requireManager();
-  if (!profile) return { ok: false, error: "Só administradores e gestores renomeiam etapas." };
-  const supabase = await createClient();
-
-  const { stage, label } = parsed.data;
-  const { data, error } = await supabase
-    .from("pipeline_stage_labels")
-    .update({ label, updated_by: profile.id })
-    .eq("stage", stage)
-    .select("stage");
-  if (error) return dbFailure("rename-stage", error);
-  if (!data?.length) return { ok: false, error: "Não foi possível renomear esta etapa. Atualize a página e tente de novo." };
 
   revalidateComercial();
   return { ok: true };

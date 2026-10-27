@@ -2,9 +2,10 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, useTransition } from "react";
 import type { DragEndEvent, DragOverEvent, DragStartEvent } from "@dnd-kit/core";
-import type { DealType, PipelineStage } from "../../constants";
-import { finalizeDrop, groupByStage, moveAcross, patchLead, type Columns } from "../../lib/pipeline";
+import type { DealType } from "../../constants";
+import { finalizeDrop, findColumn, groupByColumn, moveAcross, patchLead, type Columns } from "../../lib/pipeline";
 import { stageNeedsPrompt } from "../../lib/stage-transition";
+import { isPendingStage, legacyStageOf, type StageColumn } from "../../lib/stages";
 import { moveLead } from "../../actions";
 import type { PipelineLead } from "../../types";
 
@@ -12,7 +13,7 @@ import type { PipelineLead } from "../../types";
 export type PendingPrompt = {
   kind: "fechado" | "perdido";
   lead: PipelineLead;
-  toStage: PipelineStage;
+  toStage: StageColumn;
   position: number;
 };
 
@@ -24,21 +25,23 @@ export type PromptAnswer =
  * Estado do quadro com UI otimista: o card muda de lugar na hora e volta ao lugar de origem se o
  * servidor recusar. Quando o servidor revalida, as colunas são recriadas a partir dos novos dados.
  */
-export function usePipelineDnd(leads: PipelineLead[]) {
+export function usePipelineDnd(leads: PipelineLead[], stages: StageColumn[]) {
   const [sourceLeads, setSourceLeads] = useState(leads);
-  const [columns, setColumns] = useState(() => groupByStage(leads));
+  const [columns, setColumns] = useState(() => groupByColumn(leads, stages.map((stage) => stage.id)));
   if (leads !== sourceLeads) {
     setSourceLeads(leads);
-    setColumns(groupByStage(leads));
+    setColumns(groupByColumn(leads, stages.map((stage) => stage.id)));
   }
 
-  // Handlers do dnd-kit leem sempre a versão mais recente das colunas.
+  // Handlers do dnd-kit leem sempre a versão mais recente das colunas e das etapas.
   const columnsRef = useRef(columns);
+  const stagesRef = useRef(stages);
   useLayoutEffect(() => {
     columnsRef.current = columns;
-  }, [columns]);
+    stagesRef.current = stages;
+  }, [columns, stages]);
   const snapshot = useRef<Columns | null>(null);
-  const originStage = useRef<PipelineStage | null>(null);
+  const originStage = useRef<string | null>(null);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<PendingPrompt | null>(null);
@@ -58,16 +61,16 @@ export function usePipelineDnd(leads: PipelineLead[]) {
   }, [apply]);
 
   const commit = useCallback(
-    (lead: PipelineLead, toStage: PipelineStage, position: number, answer?: PromptAnswer) => {
+    (lead: PipelineLead, toStage: StageColumn, position: number, answer?: PromptAnswer) => {
       const rollback = snapshot.current;
       snapshot.current = null;
       originStage.current = null;
-      const patch: Partial<PipelineLead> = { stage: toStage, position };
+      const patch: Partial<PipelineLead> = { stageId: toStage.id, stage: legacyStageOf(toStage), position };
       if (answer?.kind === "fechado") {
         Object.assign(patch, { dealType: answer.dealType, dealValueCents: answer.dealValueCents, lostReason: null });
       } else if (answer?.kind === "perdido") {
         Object.assign(patch, { lostReason: answer.lostReason, dealType: null, dealValueCents: null });
-      } else if (toStage !== lead.stage) {
+      } else if (toStage.id !== lead.stageId) {
         Object.assign(patch, { dealType: null, dealValueCents: null, lostReason: null });
       }
       apply(patchLead(columnsRef.current, lead.id, patch));
@@ -75,7 +78,7 @@ export function usePipelineDnd(leads: PipelineLead[]) {
       startTransition(async () => {
         const result = await moveLead({
           leadId: lead.id,
-          toStage,
+          toStageId: toStage.id,
           position,
           dealType: answer?.kind === "fechado" ? answer.dealType : undefined,
           dealValue: answer?.kind === "fechado" ? answer.dealValue : undefined,
@@ -94,8 +97,7 @@ export function usePipelineDnd(leads: PipelineLead[]) {
     const current = columnsRef.current;
     snapshot.current = current;
     const id = String(active.id);
-    originStage.current =
-      (Object.keys(current) as PipelineStage[]).find((stage) => current[stage].some((lead) => lead.id === id)) ?? null;
+    originStage.current = findColumn(current, id);
     setActiveId(id);
     setError(null);
   }, []);
@@ -119,19 +121,25 @@ export function usePipelineDnd(leads: PipelineLead[]) {
         restore();
         return;
       }
-      const original = snapshot.current?.[origin].find((lead) => lead.id === drop.lead.id);
-      const originalIndex = snapshot.current?.[origin].findIndex((lead) => lead.id === drop.lead.id) ?? -1;
-      if (!original || (drop.stage === origin && drop.index === originalIndex)) {
+      const original = snapshot.current?.[origin]?.find((lead) => lead.id === drop.lead.id);
+      const originalIndex = snapshot.current?.[origin]?.findIndex((lead) => lead.id === drop.lead.id) ?? -1;
+      if (!original || (drop.stageId === origin && drop.index === originalIndex)) {
         restore();
         return;
       }
-      apply(drop.columns);
-      const kind = stageNeedsPrompt(origin, drop.stage);
-      if (kind) {
-        setPrompt({ kind, lead: original, toStage: drop.stage, position: drop.position });
+      const target = stagesRef.current.find((stage) => stage.id === drop.stageId);
+      if (!target || isPendingStage(target.id)) {
+        restore();
+        setError("Esta etapa ainda está sendo salva. Tente de novo em instantes.");
         return;
       }
-      commit(original, drop.stage, drop.position);
+      apply(drop.columns);
+      const kind = stageNeedsPrompt(origin, target);
+      if (kind) {
+        setPrompt({ kind, lead: original, toStage: target, position: drop.position });
+        return;
+      }
+      commit(original, target, drop.position);
     },
     [apply, commit, restore],
   );

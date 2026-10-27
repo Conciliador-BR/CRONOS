@@ -1,9 +1,12 @@
 import type { Member } from "../shared/types";
+import type { BackgroundImage } from "./backgrounds";
 
 export type BoardSummary = {
   id: string;
   name: string;
   background: string;
+  /** Foto de fundo do quadro (URL assinada, 1 h); a cor fica como reserva e véu. */
+  image: BackgroundImage | null;
   listCount: number;
   cardCount: number;
 };
@@ -51,8 +54,11 @@ export type BoardDestination = {
   lists: { id: string; name: string }[];
 };
 
+/** Dados do quadro usados no cabeçalho, nas configurações e no fundo. */
+export type BoardInfo = { id: string; name: string; background: string; image: BoardSummary["image"] };
+
 export type BoardData = {
-  board: { id: string; name: string; background: string };
+  board: BoardInfo;
   lists: BoardList[];
   cards: BoardCard[];
   labels: BoardLabel[];

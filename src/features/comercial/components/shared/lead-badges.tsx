@@ -2,7 +2,7 @@
 
 import { Flame, Snowflake } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useStageLabels } from "./stage-labels-context";
+import { useStages } from "./stages-context";
 import { SOURCE_LABELS, TEMPERATURE_LABELS, type LeadSource, type LeadTemperature, type PipelineStage } from "../../constants";
 
 export function TemperatureBadge({ temperature }: { temperature: LeadTemperature }) {
@@ -19,17 +19,12 @@ export function SourceBadge({ source }: { source: LeadSource }) {
   return <Badge variant="neutral">{SOURCE_LABELS[source]}</Badge>;
 }
 
-const stageVariant: Record<PipelineStage, "neutral" | "primary" | "success" | "danger"> = {
-  lead_recebido: "neutral",
-  diagnostico_feito: "primary",
-  reuniao_marcada: "primary",
-  follow_up: "primary",
-  cliente_fechado: "success",
-  cliente_perdido: "danger",
-};
+const kindVariant = { aberto: "primary", fechado: "success", perdido: "danger" } as const;
 
-/** Nome da etapa como o gestor definiu (componente cliente: lê o contexto do CRM). */
-export function StageBadge({ stage }: { stage: PipelineStage }) {
-  const labels = useStageLabels();
-  return <Badge variant={stageVariant[stage]}>{labels[stage]}</Badge>;
+/** Nome da coluna como o gestor definiu (componente cliente: lê o contexto do CRM). */
+export function StageBadge({ stageId, stage }: { stageId: string; stage: PipelineStage }) {
+  const { byId, labelOf } = useStages();
+  const column = byId.get(stageId);
+  const variant = column ? kindVariant[column.kind] : stage === "cliente_fechado" ? "success" : stage === "cliente_perdido" ? "danger" : "neutral";
+  return <Badge variant={variant}>{labelOf(stageId, stage)}</Badge>;
 }

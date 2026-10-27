@@ -9,18 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { BOARD_COLORS } from "../../shared/colors";
 import { ColorPicker } from "../../shared/color-picker";
+import { removeBoardBackground, setBoardBackground } from "../background-actions";
+import { boardBackdrop } from "../backgrounds";
 import { createBoard, deleteBoard, updateBoard } from "../board-actions";
+import type { BoardInfo } from "../types";
+import { BackgroundPicker } from "./background-picker";
+import { useStableImageUrl } from "./use-stable-image";
 
-type Board = { id: string; name: string; background: string };
-
-/** Criar ou editar quadro (nome, cor de fundo) e excluir. */
-export function BoardFormModal({ open, onClose, board }: { open: boolean; onClose: () => void; board?: Board }) {
+/** Criar ou editar quadro (nome, cor de fundo, imagem de fundo) e excluir. */
+export function BoardFormModal({ open, onClose, board }: { open: boolean; onClose: () => void; board?: BoardInfo }) {
   const router = useRouter();
   const [name, setName] = useState(board?.name ?? "");
   const [background, setBackground] = useState(board?.background ?? BOARD_COLORS[1].value);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"save" | "delete" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const imageUrl = useStableImageUrl(board?.image ?? null);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -69,7 +73,7 @@ export function BoardFormModal({ open, onClose, board }: { open: boolean; onClos
         <div
           aria-hidden
           className="flex h-24 items-start gap-2 rounded-lg p-3"
-          style={{ background: `linear-gradient(160deg, ${background}, color-mix(in srgb, ${background} 55%, #05070d))` }}
+          style={{ background: boardBackdrop(background, imageUrl) }}
         >
           <span className="h-14 w-16 rounded bg-white/25" />
           <span className="h-10 w-16 rounded bg-white/25" />
@@ -79,6 +83,18 @@ export function BoardFormModal({ open, onClose, board }: { open: boolean; onClos
           <Input autoFocus maxLength={120} value={name} onChange={(event) => setName(event.target.value)} />
         </Field>
         <ColorPicker name="board-color" label="Cor de fundo" colors={BOARD_COLORS} value={background} onChange={setBackground} size="lg" />
+        {board ? (
+          <BackgroundPicker
+            label="Imagem de fundo"
+            hasImage={Boolean(board.image)}
+            onUpload={(file) => {
+              const form = new FormData();
+              form.set("file", file);
+              return setBoardBackground(board.id, form);
+            }}
+            onRemove={() => removeBoardBackground(board.id)}
+          />
+        ) : null}
         {error ? <Alert tone="danger">{error}</Alert> : null}
         {confirmDelete ? (
           <Alert tone="warning" title="Excluir este quadro?">
