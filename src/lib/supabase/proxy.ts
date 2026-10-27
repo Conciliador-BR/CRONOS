@@ -39,7 +39,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  if (signedIn && pathname === "/login") {
+  // Com ?erro (ex.: conta inativa) a página de login precisa abrir, senão vira loop com /inicio.
+  if (signedIn && pathname === "/login" && !request.nextUrl.searchParams.has("erro")) {
     const home = request.nextUrl.clone();
     home.pathname = "/inicio";
     home.search = "";

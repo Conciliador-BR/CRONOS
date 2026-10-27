@@ -1,0 +1,45 @@
+/*
+ * Controles do MapLibre no tema escuro do CRONOS (escopo .em-map; CSS global, sem CSS Modules).
+ * Importado pelos dois mapas: Empresas e o seletor de localização do cadastro.
+ */
+.em-map .maplibregl-ctrl-group {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+}
+.em-map .maplibregl-ctrl-group button {
+  width: 34px;
+  height: 34px;
+}
+.em-map .maplibregl-ctrl-group button + button {
+  border-top: 1px solid var(--border);
+}
+.em-map .maplibregl-ctrl-group button:not(:disabled):hover {
+  background: var(--surface-2);
+}
+.em-map .maplibregl-ctrl-group button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+/* Ícones +/− do MapLibre são SVG escuros: inverte para claro. */
+.em-map .maplibregl-ctrl-icon {
+  filter: invert(0.9) hue-rotate(180deg);
+}
+.em-map .maplibregl-ctrl-attrib,
+.em-map .maplibregl-ctrl-attrib.maplibregl-compact {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  color: var(--muted);
+}
+.em-map .maplibregl-ctrl-attrib a {
+  color: var(--fg);
+}
+.em-map .maplibregl-ctrl-attrib-button {
+  filter: invert(0.85);
+  background-color: transparent;
+}
+.em-map .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  border: 1px solid var(--border);
+}
