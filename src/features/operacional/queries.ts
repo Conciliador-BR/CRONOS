@@ -64,7 +64,7 @@ export async function getMyOpenCards(limit: number): Promise<MyOpenCard[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("cards")
-    .select("id, title, due_at, board_id, boards(name), board_lists(name), card_assignees!inner(profile_id)")
+    .select("id, title, due_at, board_id, boards(name), board_lists!cards_list_id_fkey(name), card_assignees!inner(profile_id)")
     .eq("card_assignees.profile_id", profile.id)
     .eq("archived", false)
     .eq("completed", false)
