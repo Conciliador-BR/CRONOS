@@ -31,9 +31,9 @@ Estados: **validado** (rodou e foi conferido), **configurado** (arquivo/instala�
 
 | Componente | Ação e motivo | Escopo | Estado e evidência |
 |---|---|---|---|
-| Superpowers 7.0.0 | Instalado (`claude-plugins-official`) | Projeto: `.claude/settings.json` | Configurado. `claude plugin list` mostra habilitado; carregamento em sessão nova não observado |
-| Ponytail 5.3.2 (modo padrão `full`) | Instalado; opções de webhook/ledger deixadas vazias (sem serviço externo) | Projeto | Configurado, idem |
-| Caveman 4.0.1 | Instalado; hooks locais sem rede (conferido no código). Português conciso só na conversa | Projeto | Configurado, idem. Plugin avisa que não instala dependências pnpm próprias; hooks usam só Node |
+| Superpowers 7.0.0 | Instalado (`claude-plugins-official`) | Projeto: `.claude/settings.json` | Validado: skills carregadas na sessão retomada (ver abaixo) |
+| Ponytail 5.3.2 (modo padrão `full`) | Instalado; opções de webhook/ledger deixadas vazias (sem serviço externo) | Projeto | Validado: hook ativou `full` na sessão retomada |
+| Caveman 4.0.1 | Instalado; hooks locais sem rede (conferido no código). Português conciso só na conversa | Projeto | Validado: hook ativou o modo na sessão retomada. Plugin avisa que não instala dependências pnpm próprias; hooks usam só Node |
 | Context7 | Plugin oficial (`context7@claude-plugins-official`, MCP remoto `mcp.context7.com`). Marketplace `upstash/context7` removido para não duplicar o servidor | Projeto | **Bloqueado aqui**: rede da nuvem nega o host (403). Validar na máquina com uma consulta real |
 | RTK | Não instalado: binário e hook são de máquina | Máquina | Pendente de autorização: `winget install rtk-ai.rtk` e `rtk init -g` (hook nativo no Windows desde v0.37.2) |
 | Graphify 0.9.96 (`graphifyy[sql]`) | Executado via `uvx` sem instalação global; `.graphifyignore` + `graphify-out/` no `.gitignore` | Projeto (saída local) | Validado: `extract . --code-only --no-cluster` → 1867 nós, 7109 arestas, 357 arquivos + 7 migrations; `explain requireRole` e `query` responderam. Sem extração semântica (precisa da integração nativa) |
@@ -56,6 +56,8 @@ Estados: **validado** (rodou e foi conferido), **configurado** (arquivo/instala�
 | Lint tipado | `eslint.typed.config.mjs` | Projeto | Validado: 0 erros, 37 avisos legados; ~43 s e ~1,6 GB de pico nesta nuvem |
 | Revisão de segurança reutilizável | Reutilizado `docs/prompts/security-review.md` (mesma revisão) | Projeto | — |
 | Harness2 (método nativo) | Prompt 15 copiado para `docs/prompts/harness-improvement.md` | Projeto | Validado: 3 casos de fumaça passaram (abaixo). CLI oficial não selecionado |
+
+Carregamento observado em 2026-10-27, ao retomar esta sessão na nuvem: os hooks `SessionStart` do Caveman e do Ponytail rodaram e as skills de Superpowers, Ponytail e Caveman apareceram na lista do cliente. O MCP do Context7 tentou conectar e falhou com `ERR_PROXY_TUNNEL` (rede da nuvem), o que confirma a configuração e o bloqueio.
 
 Revisões de terceiros conferidas em 2026-10-27 (os plugins seguem o branch padrão do marketplace e não ficam presos a um commit; ao atualizar, revise de novo os hooks antes de aceitar): `claude-plugins-official` `41f619d`, Superpowers `bb92a77`, Ponytail `09c434a`, Caveman `9b68f7e`. Os hooks de Ponytail e Caveman só rodam Node local; nenhum faz chamada de rede nessas revisões.
 
@@ -85,7 +87,7 @@ Migrations aplicadas pelo MCP do Supabase (a versão remota é o horário da apl
 | `pnpm lint:typed` | não existia | ok, 37 avisos | ver `docs/quality.md` |
 | `pnpm lint:rules` | não existia | ok | 3 regras |
 | `pnpm typecheck` | ok | ok | — |
-| `pnpm test` | 35 arquivos / 221 testes | igual | — |
+| `pnpm test` | 35 arquivos / 221 testes | 36 / 227 após rebase sobre o PR #2 (`9bddf27`) | `pnpm check` saída 0 |
 | `pnpm build` | ok | ok | — |
 | `pnpm audit --prod` | 1 crítico (`maplibre-gl`) | igual | Pré-existente; ver Pendências |
 | Páginas públicas no navegador | — | Validado | `pnpm start` na porta 3417 + Playwright 1440 e 390: `/`, `/login`, `/primeiro-acesso` com status 200 e h1 esperado; `/inicio` sem sessão redireciona para `/login?next=%2Finicio`; sem erros de console nem rolagem horizontal. Processo encerrado |
