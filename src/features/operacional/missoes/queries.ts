@@ -1,22 +1,49 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveMembers } from "../shared/members";
+import { WALLPAPERS_BUCKET, type BackgroundImage } from "./backgrounds";
 import type { BoardCard, BoardData, BoardDestination, BoardSummary } from "./types";
 
-/** Quadros com contagem de listas e cartões ativos. */
+/** URLs assinadas (1 h) do bucket de fundos em uma chamada. Falha vira "sem imagem" (fica a cor). */
+async function signWallpapers(paths: string[]): Promise<Map<string, string>> {
+  const urls = new Map<string, string>();
+  if (paths.length === 0) return urls;
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from(WALLPAPERS_BUCKET).createSignedUrls(paths, 3600);
+  for (const item of data ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
+  return urls;
+}
+
+function toImage(path: string | null, urls: Map<string, string>): BackgroundImage | null {
+  const url = path ? urls.get(path) : undefined;
+  return path && url ? { path, url } : null;
+}
+
+/** Papel de parede da página Missões do usuário logado (a RLS só mostra a própria linha). */
+export async function getMissionsWallpaper(): Promise<BackgroundImage | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("user_preferences").select("missions_wallpaper_path").maybeSingle();
+  const path = data?.missions_wallpaper_path ?? null;
+  return toImage(path, await signWallpapers(path ? [path] : []));
+}
+
+/** Quadros com contagem de listas e cartões ativos e a imagem de fundo (assinada em lote). */
 export async function getBoards(): Promise<BoardSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("boards")
-    .select("id, name, background, position, created_at, board_lists(count), cards(count)")
+    .select("id, name, background, background_image_path, position, created_at, board_lists(count), cards(count)")
     .eq("cards.archived", false)
     .order("position")
     .order("created_at");
   if (error) throw new Error("Falha ao carregar quadros");
-  return (data ?? []).map((row) => ({
+  const rows = data ?? [];
+  const urls = await signWallpapers(rows.flatMap((row) => (row.background_image_path ? [row.background_image_path] : [])));
+  return rows.map((row) => ({
     id: row.id,
     name: row.name,
     background: row.background,
+    image: toImage(row.background_image_path, urls),
     listCount: row.board_lists[0]?.count ?? 0,
     cardCount: row.cards[0]?.count ?? 0,
   }));
@@ -53,7 +80,7 @@ async function getDestinations(): Promise<BoardDestination[]> {
 export async function getBoardData(boardId: string): Promise<BoardData | null> {
   const supabase = await createClient();
   const [boardRes, listsRes, cardsRes, labelsRes, members, destinations] = await Promise.all([
-    supabase.from("boards").select("id, name, background").eq("id", boardId).maybeSingle(),
+    supabase.from("boards").select("id, name, background, background_image_path").eq("id", boardId).maybeSingle(),
     supabase.from("board_lists").select("id, name, position").eq("board_id", boardId).order("position"),
     supabase
       .from("cards")
@@ -73,7 +100,11 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
   if (!boardRes.data) return null;
 
   const rows = cardsRes.data ?? [];
-  const coverUrls = await signCardImages(rows.flatMap((row) => (row.cover?.storage_path ? [row.cover.storage_path] : [])));
+  const imagePath = boardRes.data.background_image_path;
+  const [coverUrls, imageUrls] = await Promise.all([
+    signCardImages(rows.flatMap((row) => (row.cover?.storage_path ? [row.cover.storage_path] : []))),
+    signWallpapers(imagePath ? [imagePath] : []),
+  ]);
   const cards: BoardCard[] = rows.map((row) => ({
     id: row.id,
     listId: row.list_id,
@@ -91,7 +122,12 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
   }));
 
   return {
-    board: boardRes.data,
+    board: {
+      id: boardRes.data.id,
+      name: boardRes.data.name,
+      background: boardRes.data.background,
+      image: toImage(imagePath, imageUrls),
+    },
     lists: listsRes.data ?? [],
     cards,
     labels: labelsRes.data ?? [],

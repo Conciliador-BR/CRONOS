@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import { computeLeadSourceStats, type LeadSourceStats } from "./lib/lead-stats";
-import { mergeStageLabels, type StageLabels } from "./lib/stage-labels";
+import { sortStages, terminalLabels, toStageKind, type StageColumn, type TerminalLabels } from "./lib/stages";
 import type { PerformanceMember } from "./lib/performance";
 import type { MemberOption, PipelineLead, StageHistoryEntry } from "./types";
 
@@ -77,6 +77,7 @@ function toPipelineLead(row: LeadRow): PipelineLead {
     description: row.description,
     ownerId: row.owner_id,
     createdBy: row.created_by,
+    stageId: row.stage_id,
     stage: row.stage,
     position: row.position,
     dealType: row.deal_type,
@@ -88,45 +89,58 @@ function toPipelineLead(row: LeadRow): PipelineLead {
 }
 
 /**
- * Nomes das etapas do pipeline (editáveis por admin/gestor). Uma vez por requisição.
- * Se a leitura falhar, registra um aviso e usa os nomes padrão para não derrubar a página.
+ * Colunas do pipeline em ordem (nomes, tipo e posição). Uma vez por requisição.
+ * Sem try/catch: cookies() lança um sinal interno do Next que precisa subir (rota dinâmica).
  */
-export const getStageLabels = cache(async (): Promise<StageLabels> => {
-  // Sem try/catch: cookies() lança um sinal interno do Next que precisa subir (rota dinâmica).
+export const getPipelineStages = cache(async (): Promise<StageColumn[]> => {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("pipeline_stage_labels").select("stage, label");
-  if (error) {
-    logger.warn({ scope: "stage-labels", code: error.code, message: error.message }, "comercial: nomes das etapas padrão");
-    return mergeStageLabels(null);
-  }
-  return mergeStageLabels(data);
+  const { data, error } = await supabase
+    .from("pipeline_stages")
+    .select("id, label, kind, position, legacy_stage")
+    .order("position")
+    .order("id");
+  if (error) failQuery("pipeline-stages", error);
+  return sortStages(
+    (data ?? []).map((row) => ({
+      id: row.id,
+      label: row.label,
+      kind: toStageKind(row.kind),
+      position: row.position,
+      legacyStage: row.legacy_stage,
+    })),
+  );
 });
+
+/** Nomes atuais das colunas de fechado e perdido (Desempenho, Insights). */
+export async function getTerminalStageLabels(): Promise<TerminalLabels> {
+  return terminalLabels(await getPipelineStages());
+}
 
 export type PipelineData = {
   leads: PipelineLead[];
   members: MemberOption[];
   currentUserId: string;
   canManage: boolean;
-  stageLabels: StageLabels;
+  stages: StageColumn[];
 };
 
-/** Todos os leads do pipeline (ordenados por etapa e posição) e os funcionários ativos. */
+/** Todos os leads do pipeline (ordenados por coluna e posição), as colunas e os funcionários ativos. */
 export async function getPipelineData(): Promise<PipelineData> {
   const profile = await requireMember();
   const supabase = await createClient();
-  const [rows, members, stageLabels] = await Promise.all([
+  const [rows, members, stages] = await Promise.all([
     fetchAllRows("pipeline", (from, to) =>
-      supabase.from("leads").select("*").order("stage").order("position").order("created_at").range(from, to),
+      supabase.from("leads").select("*").order("stage_id").order("position").order("created_at").order("id").range(from, to),
     ),
     getActiveMembers(),
-    getStageLabels(),
+    getPipelineStages(),
   ]);
   return {
     leads: rows.map(toPipelineLead),
     members: members.map(({ id, name, avatarUrl }) => ({ id, name, avatarUrl })),
     currentUserId: profile.id,
     canManage: isManager(profile),
-    stageLabels,
+    stages,
   };
 }
 
@@ -135,7 +149,7 @@ export async function getLeadHistory(leadId: string): Promise<StageHistoryEntry[
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lead_stage_history")
-    .select("id, from_stage, to_stage, changed_at, profiles(full_name)")
+    .select("id, from_stage, to_stage, from_stage_id, to_stage_id, changed_at, profiles(full_name)")
     .eq("lead_id", leadId)
     .order("changed_at", { ascending: false })
     .limit(100);
@@ -144,6 +158,8 @@ export async function getLeadHistory(leadId: string): Promise<StageHistoryEntry[
     id: row.id,
     fromStage: row.from_stage,
     toStage: row.to_stage,
+    fromStageId: row.from_stage_id,
+    toStageId: row.to_stage_id,
     changedAt: row.changed_at,
     changedByName: row.profiles?.full_name || null,
   }));

@@ -8,16 +8,16 @@ import { Modal } from "@/components/ui/modal";
 import { createLead } from "../../actions";
 import type { CreateLeadInput } from "../../schemas";
 import type { MemberOption } from "../../types";
-import { useStageLabels } from "../shared/stage-labels-context";
+import { useStages } from "../shared/stages-context";
 import { LeadFormFields, readForm, type FieldErrors } from "./lead-form-fields";
 
 const FORM_ID = "novo-lead";
 
 type Props = { members: MemberOption[]; currentUserId: string; onCreated: (name: string) => void };
 
-/** Botão "Novo lead" + modal com o formulário. O lead entra no topo de "Lead recebido". */
+/** Botão "Novo lead" + modal com o formulário. O lead entra no topo da primeira coluna aberta. */
 export function NewLeadButton({ members, currentUserId, onCreated }: Props) {
-  const labels = useStageLabels();
+  const { firstOpen } = useStages();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export function NewLeadButton({ members, currentUserId, onCreated }: Props) {
         closeOnBackdrop={false}
         size="lg"
         title="Novo lead"
-        description={`O lead entra em ${labels.lead_recebido}.`}
+        description={firstOpen ? `O lead entra em ${firstOpen.label}.` : undefined}
         footer={
           <>
             <Button variant="secondary" onClick={close} disabled={pending}>

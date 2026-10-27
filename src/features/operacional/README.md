@@ -26,8 +26,8 @@ getMyOpenCards(limit: number): Promise<MyOpenCard[]>
 
 | Rota | Conteúdo |
 |---|---|
-| `/operacional/missoes` | Quadros (criar, renomear, cor de fundo, excluir) |
-| `/operacional/missoes/[boardId]` | Listas e cartões com arrastar e soltar, concluir no cartão, fotos e capa, mudar de quadro, arquivados |
+| `/operacional/missoes` | Quadros (criar, renomear, cor e imagem de fundo, excluir) e papel de parede de cada usuário |
+| `/operacional/missoes/[boardId]` | Listas e cartões com arrastar e soltar, concluir no cartão, fotos e capa, imagem de fundo, mudar de quadro, arquivados |
 | `/operacional/agenda?visao=mes\|semana\|dia&data=aaaa-mm-dd` | Agenda; o servidor busca só o período visível |
 | `/operacional/documentacoes` | Grade de adquirentes (gestor cria, edita, reordena, envia logo) |
 | `/operacional/documentacoes/[acquirerId]` | Documentos (envio, download, exclusão) e notas com salvamento automático |
@@ -64,6 +64,7 @@ missoes/   agenda/   documentacoes/   cursos/
 
 - **Cartão (rosto):** a superfície de arrastar/abrir é um elemento atrás do visual; a bolinha "Marcar como concluída" (`card-complete-toggle.tsx`, `aria-pressed`) e o menu "…" (`card-quick-menu.tsx`, Popover API, setas/Home/End/Esc) ficam por cima e não iniciam arrasto. Concluir e arquivar usam `use-card-commands.ts` (otimista). "Mudar de quadro" no menu abre o modal com o seletor de quadro/lista já aberto (`openCard(id, "move")`).
 - **Fotos dos cartões** (`attachment-actions.ts`, migration `20261026120000_feedback_cnae_filiais_fotos.sql`): bucket privado `card-images`, caminho `<card_id>/<uuid>.<ext>`. Envio por FormData (uma foto por chamada; o cliente envia várias em sequência) com tipo, tamanho (10 MB) e assinatura dos bytes conferidos no servidor. A primeira foto vira capa. As ações conferem que o cartão está no quadro e a foto no cartão antes de definir capa ou excluir; excluir apaga a linha (RLS: quem enviou ou gestor) e depois o arquivo. O quadro assina as capas em lote (`createSignedUrls`, 1 h) e conta as fotos de cada cartão; a lista completa só carrega ao abrir o cartão.
+- **Fundos** (`background-actions.ts`, `backgrounds.ts` testado; migration `20261027180000_pipeline_stages_wallpapers.sql`): bucket privado `wallpapers`. O papel de parede da página é por usuário (`user_preferences.missions_wallpaper_path`, caminho `users/<auth.uid>/<uuid>.<ext>`); a imagem do quadro é colaborativa (`boards.background_image_path`, `boards/<board_id>/<uuid>.<ext>`). Envio por FormData com tipo, tamanho (10 MB) e assinatura dos bytes conferidos; o caminho é gerado no servidor e o arquivo anterior é apagado depois de gravar o novo (melhor esforço: se a RLS negar, por exemplo fundo enviado por outra pessoa sem ser gestor, fica um log `warn` e o arquivo sobra). As consultas assinam as URLs (1 h) em lote; no cliente `useStableImageUrl` mantém a mesma URL enquanto o caminho não muda, para a foto não ser baixada de novo a cada revalidação.
 - **Lembretes:** o módulo `src/features/lembretes` lê `events`/`event_attendees` e `cards`/`card_assignees` diretamente (só leitura) para o sino da barra superior.
 
 ## Pendências

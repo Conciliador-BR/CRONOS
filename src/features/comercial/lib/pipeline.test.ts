@@ -4,15 +4,17 @@ import {
   EMPTY_FILTERS,
   columnId,
   finalizeDrop,
-  findStage,
-  groupByStage,
+  findColumn,
+  groupByColumn,
   hasActiveFilters,
   matchesFilters,
   moveAcross,
   patchLead,
 } from "./pipeline";
 
-function lead(id: string, stage: PipelineLead["stage"], position: number, extra: Partial<PipelineLead> = {}): PipelineLead {
+const STAGE_IDS = ["lead_recebido", "diagnostico_feito", "reuniao_marcada", "follow_up", "cliente_fechado", "cliente_perdido"];
+
+function lead(id: string, stageId: string, position: number, extra: Partial<PipelineLead> = {}): PipelineLead {
   return {
     id,
     name: `Lead ${id}`,
@@ -25,7 +27,8 @@ function lead(id: string, stage: PipelineLead["stage"], position: number, extra:
     description: null,
     ownerId: null,
     createdBy: null,
-    stage,
+    stageId,
+    stage: "lead_recebido",
     position,
     dealType: null,
     dealValueCents: null,
@@ -36,20 +39,31 @@ function lead(id: string, stage: PipelineLead["stage"], position: number, extra:
   };
 }
 
-const base = groupByStage([
-  lead("a", "lead_recebido", 2),
-  lead("b", "lead_recebido", 1),
-  lead("c", "follow_up", 0),
-  lead("d", "follow_up", 10),
-]);
+const base = groupByColumn(
+  [lead("a", "lead_recebido", 2), lead("b", "lead_recebido", 1), lead("c", "follow_up", 0), lead("d", "follow_up", 10)],
+  STAGE_IDS,
+);
 
-describe("groupByStage / findStage", () => {
-  it("agrupa e ordena por posição", () => {
+describe("groupByColumn / findColumn", () => {
+  it("agrupa pelo id da coluna e ordena por posição", () => {
     expect(base.lead_recebido.map((l) => l.id)).toEqual(["b", "a"]);
     expect(base.cliente_fechado).toEqual([]);
-    expect(findStage(base, "d")).toBe("follow_up");
-    expect(findStage(base, columnId("cliente_perdido"))).toBe("cliente_perdido");
-    expect(findStage(base, "zzz")).toBeNull();
+    expect(findColumn(base, "d")).toBe("follow_up");
+    expect(findColumn(base, columnId("cliente_perdido"))).toBe("cliente_perdido");
+    expect(findColumn(base, "zzz")).toBeNull();
+  });
+
+  it("cria colunas vazias e manda lead de coluna desconhecida para a primeira", () => {
+    const grouped = groupByColumn([lead("x", "excluida", 5), lead("y", "nova", 1)], ["nova", "outra"]);
+    expect(grouped.nova.map((l) => l.id)).toEqual(["y", "x"]);
+    expect(grouped.outra).toEqual([]);
+    expect(Object.keys(grouped)).toEqual(["nova", "outra"]);
+  });
+
+  it("aceita soltar numa coluna que ainda não tem lista", () => {
+    const over = moveAcross(base, "a", columnId("recem-criada"));
+    expect(over["recem-criada"].map((l) => l.id)).toEqual(["a"]);
+    expect(finalizeDrop(over, "a", columnId("recem-criada"))).toMatchObject({ stageId: "recem-criada", position: 0 });
   });
 });
 
@@ -60,7 +74,7 @@ describe("moveAcross + finalizeDrop", () => {
     expect(over.lead_recebido.map((l) => l.id)).toEqual(["b"]);
     // Depois do dragOver, o dnd-kit costuma reportar o próprio card como "over".
     const drop = finalizeDrop(over, "a", "a");
-    expect(drop).toMatchObject({ stage: "follow_up", index: 1, position: 5 });
+    expect(drop).toMatchObject({ stageId: "follow_up", index: 1, position: 5 });
     // Se ainda estiver sobre "d", segue a semântica de arrayMove (vai para o índice de "d").
     expect(finalizeDrop(over, "a", "d")).toMatchObject({ index: 2, position: 10 + 1024 });
   });
@@ -68,7 +82,7 @@ describe("moveAcross + finalizeDrop", () => {
   it("solta em coluna vazia", () => {
     const over = moveAcross(base, "b", columnId("cliente_fechado"));
     const drop = finalizeDrop(over, "b", columnId("cliente_fechado"));
-    expect(drop).toMatchObject({ stage: "cliente_fechado", index: 0, position: 0 });
+    expect(drop).toMatchObject({ stageId: "cliente_fechado", index: 0, position: 0 });
   });
 
   it("reordena dentro da mesma coluna", () => {

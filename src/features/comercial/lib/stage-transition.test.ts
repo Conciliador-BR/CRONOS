@@ -1,20 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { planStageMove, stageNeedsPrompt } from "./stage-transition";
 
+const followUp = { id: "s-follow", kind: "aberto" as const };
+const custom = { id: "s-custom", kind: "aberto" as const };
+const won = { id: "s-won", kind: "fechado" as const };
+const lost = { id: "s-lost", kind: "perdido" as const };
+
 describe("planStageMove", () => {
   it("reordenar na mesma coluna só muda a posição", () => {
-    expect(planStageMove("follow_up", "follow_up", 5)).toEqual({ ok: true, patch: { stage: "follow_up", position: 5 } });
+    expect(planStageMove(followUp.id, followUp, 5)).toEqual({ ok: true, patch: { stage_id: followUp.id, position: 5 } });
   });
 
   it("fechar exige tipo e valor e limpa o motivo de perda", () => {
-    expect(planStageMove("follow_up", "cliente_fechado", 1).ok).toBe(false);
-    expect(planStageMove("follow_up", "cliente_fechado", 1, { dealType: "somente_sistema", dealValueCents: 0 }).ok).toBe(false);
-    expect(
-      planStageMove("cliente_perdido", "cliente_fechado", 1, { dealType: "somente_sistema", dealValueCents: 5000 }),
-    ).toEqual({
+    expect(planStageMove(followUp.id, won, 1).ok).toBe(false);
+    expect(planStageMove(followUp.id, won, 1, { dealType: "somente_sistema", dealValueCents: 0 }).ok).toBe(false);
+    expect(planStageMove(lost.id, won, 1, { dealType: "somente_sistema", dealValueCents: 5000 })).toEqual({
       ok: true,
       patch: {
-        stage: "cliente_fechado",
+        stage_id: won.id,
         position: 1,
         deal_type: "somente_sistema",
         deal_value_cents: 5000,
@@ -25,11 +28,11 @@ describe("planStageMove", () => {
   });
 
   it("perder exige motivo e limpa o negócio", () => {
-    expect(planStageMove("lead_recebido", "cliente_perdido", 0, { lostReason: "   " }).ok).toBe(false);
-    expect(planStageMove("cliente_fechado", "cliente_perdido", 0, { lostReason: " Preço " })).toEqual({
+    expect(planStageMove(custom.id, lost, 0, { lostReason: "   " }).ok).toBe(false);
+    expect(planStageMove(won.id, lost, 0, { lostReason: " Preço " })).toEqual({
       ok: true,
       patch: {
-        stage: "cliente_perdido",
+        stage_id: lost.id,
         position: 0,
         lost_reason: "Preço",
         deal_type: null,
@@ -39,23 +42,23 @@ describe("planStageMove", () => {
     });
   });
 
-  it("voltar para etapa aberta limpa negócio e motivo", () => {
-    expect(planStageMove("cliente_fechado", "follow_up", 3)).toEqual({
+  it("voltar para coluna aberta (inclusive uma criada depois) limpa negócio e motivo", () => {
+    expect(planStageMove(won.id, custom, 3)).toEqual({
       ok: true,
-      patch: { stage: "follow_up", position: 3, deal_type: null, deal_value_cents: null, lost_reason: null },
+      patch: { stage_id: custom.id, position: 3, deal_type: null, deal_value_cents: null, lost_reason: null },
     });
   });
 
   it("rejeita posição inválida", () => {
-    expect(planStageMove("follow_up", "follow_up", Number.NaN).ok).toBe(false);
+    expect(planStageMove(followUp.id, followUp, Number.NaN).ok).toBe(false);
   });
 });
 
 describe("stageNeedsPrompt", () => {
-  it("pergunta só ao entrar em fechado ou perdido", () => {
-    expect(stageNeedsPrompt("follow_up", "cliente_fechado")).toBe("fechado");
-    expect(stageNeedsPrompt("cliente_fechado", "cliente_perdido")).toBe("perdido");
-    expect(stageNeedsPrompt("cliente_fechado", "cliente_fechado")).toBeNull();
-    expect(stageNeedsPrompt("lead_recebido", "follow_up")).toBeNull();
+  it("pergunta só ao entrar numa coluna do tipo fechado ou perdido", () => {
+    expect(stageNeedsPrompt(followUp.id, won)).toBe("fechado");
+    expect(stageNeedsPrompt(won.id, lost)).toBe("perdido");
+    expect(stageNeedsPrompt(won.id, won)).toBeNull();
+    expect(stageNeedsPrompt(followUp.id, custom)).toBeNull();
   });
 });

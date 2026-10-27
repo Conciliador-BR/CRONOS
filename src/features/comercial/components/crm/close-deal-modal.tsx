@@ -9,7 +9,7 @@ import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
 import { DEAL_TYPES, DEAL_TYPE_LABELS, type DealType } from "../../constants";
 import { closeDealSchema } from "../../schemas";
-import { useStageLabels } from "../shared/stage-labels-context";
+import { useStages } from "../shared/stages-context";
 import type { PromptAnswer } from "./use-pipeline-dnd";
 
 type Props = {
@@ -23,13 +23,13 @@ const FORM_ID = "fechar-negocio";
 
 /** Pergunta tipo e valor ao soltar um lead em "Cliente fechado". Cancelar devolve o card. */
 export function CloseDealModal({ open, leadName, onCancel, onConfirm }: Props) {
-  const labels = useStageLabels();
+  const { terminal } = useStages();
   return (
     <Modal
       open={open}
       onClose={onCancel}
       closeOnBackdrop={false}
-      title={labels.cliente_fechado}
+      title={terminal.fechado}
       description={`Registre o negócio de ${leadName}.`}
       footer={
         <>

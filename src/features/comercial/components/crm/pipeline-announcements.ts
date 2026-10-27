@@ -1,6 +1,5 @@
 import type { Announcements, ScreenReaderInstructions } from "@dnd-kit/core";
-import { findStage, type Columns } from "../../lib/pipeline";
-import type { StageLabels } from "../../lib/stage-labels";
+import { findColumn, type Columns } from "../../lib/pipeline";
 
 export const screenReaderInstructions: ScreenReaderInstructions = {
   draggable:
@@ -9,20 +8,20 @@ export const screenReaderInstructions: ScreenReaderInstructions = {
 };
 
 /** Anúncios em português para leitores de tela. `getColumns` lê o estado mais recente. */
-export function createAnnouncements(getColumns: () => Columns, labels: StageLabels): Announcements {
+export function createAnnouncements(getColumns: () => Columns, labelOf: (stageId: string) => string): Announcements {
   function nameOf(id: string | number) {
     const columns = getColumns();
-    const stage = findStage(columns, String(id));
-    return (stage && columns[stage].find((lead) => lead.id === String(id))?.name) || "Lead";
+    const stageId = findColumn(columns, String(id));
+    return (stageId && columns[stageId]?.find((lead) => lead.id === String(id))?.name) || "Lead";
   }
 
   function placeOf(id: string | number) {
     const columns = getColumns();
-    const stage = findStage(columns, String(id));
-    if (!stage) return null;
-    const list = columns[stage];
+    const stageId = findColumn(columns, String(id));
+    const list = stageId ? columns[stageId] : undefined;
+    if (!stageId || !list) return null;
     const index = list.findIndex((lead) => lead.id === String(id));
-    return { column: labels[stage], position: index + 1, total: list.length };
+    return { column: labelOf(stageId), position: index + 1, total: list.length };
   }
 
   function describe(activeId: string | number) {

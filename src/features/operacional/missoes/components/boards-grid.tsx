@@ -3,13 +3,16 @@
 import { Plus, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { boardBackdrop } from "../backgrounds";
 import type { BoardSummary } from "../types";
 import { BoardFormModal } from "./board-form-modal";
 
-/** Área de trabalho: quadros como blocos coloridos e "Criar novo quadro". */
+/** Área de trabalho: quadros como blocos (cor ou foto de fundo) e "Criar novo quadro". */
 export function BoardsGrid({ boards }: { boards: BoardSummary[] }) {
   const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<BoardSummary | null>(null);
+  // Guarda o id: depois de trocar a imagem, o modal mostra o quadro já revalidado.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = boards.find((board) => board.id === editingId) ?? null;
 
   return (
     <>
@@ -18,8 +21,8 @@ export function BoardsGrid({ boards }: { boards: BoardSummary[] }) {
           <li key={board.id} className="group relative">
             <Link
               href={`/operacional/missoes/${board.id}`}
-              className="flex h-28 flex-col justify-between rounded-xl p-3 text-white shadow-md shadow-black/40 ring-1 ring-white/10 transition hover:brightness-110"
-              style={{ background: `linear-gradient(160deg, ${board.background}, color-mix(in srgb, ${board.background} 55%, #05070d))` }}
+              className="flex h-28 flex-col justify-between rounded-xl p-3 text-white shadow-md shadow-black/40 ring-1 ring-white/10 transition [text-shadow:0_1px_2px_rgb(0_0_0/0.6)] hover:brightness-110"
+              style={{ background: boardBackdrop(board.background, board.image?.url) }}
             >
               <span className="line-clamp-2 pr-8 font-semibold break-words">{board.name}</span>
               <span className="text-xs text-white/80">
@@ -29,7 +32,7 @@ export function BoardsGrid({ boards }: { boards: BoardSummary[] }) {
             </Link>
             <button
               type="button"
-              onClick={() => setEditing(board)}
+              onClick={() => setEditingId(board.id)}
               aria-label={`Configurar quadro ${board.name}`}
               className="absolute top-2 right-2 grid size-8 place-items-center rounded-md bg-black/30 text-white opacity-80 hover:bg-black/50 hover:opacity-100 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
             >
@@ -49,7 +52,7 @@ export function BoardsGrid({ boards }: { boards: BoardSummary[] }) {
         </li>
       </ul>
       {creating ? <BoardFormModal open onClose={() => setCreating(false)} /> : null}
-      {editing ? <BoardFormModal key={editing.id} open board={editing} onClose={() => setEditing(null)} /> : null}
+      {editing ? <BoardFormModal key={editing.id} open board={editing} onClose={() => setEditingId(null)} /> : null}
     </>
   );
 }

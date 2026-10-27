@@ -1,39 +1,45 @@
-import { PIPELINE_STAGES, type LeadSource, type LeadTemperature, type PipelineStage } from "../constants";
+import type { LeadSource, LeadTemperature } from "../constants";
 import type { PipelineLead } from "../types";
 import { positionBetween } from "./positions";
 import { normalizeText } from "./text";
 
-export type Columns = Record<PipelineStage, PipelineLead[]>;
+/** Leads por coluna, indexados pelo id da coluna (`pipeline_stages.id`). */
+export type Columns = Record<string, PipelineLead[]>;
 
 export const COLUMN_PREFIX = "column:";
-export const columnId = (stage: PipelineStage) => `${COLUMN_PREFIX}${stage}`;
+export const columnId = (stageId: string) => `${COLUMN_PREFIX}${stageId}`;
 
-export function groupByStage(leads: readonly PipelineLead[]): Columns {
-  const columns = Object.fromEntries(PIPELINE_STAGES.map((stage) => [stage, [] as PipelineLead[]])) as Columns;
-  for (const lead of leads) columns[lead.stage].push(lead);
-  for (const stage of PIPELINE_STAGES) {
-    columns[stage].sort((a, b) => a.position - b.position || a.createdAt.localeCompare(b.createdAt));
+/**
+ * Agrupa os leads pelas colunas informadas, em ordem de posição. Lead de coluna desconhecida
+ * (ex.: excluída por outra pessoa) vai para a primeira coluna até a página atualizar.
+ */
+export function groupByColumn(leads: readonly PipelineLead[], stageIds: readonly string[]): Columns {
+  const columns: Columns = Object.fromEntries(stageIds.map((id) => [id, [] as PipelineLead[]]));
+  const fallback = stageIds[0];
+  for (const lead of leads) {
+    const bucket = columns[lead.stageId] ?? (fallback ? columns[fallback] : undefined);
+    bucket?.push(lead);
+  }
+  for (const id of stageIds) {
+    columns[id].sort((a, b) => a.position - b.position || a.createdAt.localeCompare(b.createdAt));
   }
   return columns;
 }
 
-/** Etapa onde está o card (ou a própria coluna, se o id for de coluna). */
-export function findStage(columns: Columns, id: string): PipelineStage | null {
-  if (id.startsWith(COLUMN_PREFIX)) {
-    const stage = id.slice(COLUMN_PREFIX.length) as PipelineStage;
-    return stage in columns ? stage : null;
-  }
-  return PIPELINE_STAGES.find((stage) => columns[stage].some((lead) => lead.id === id)) ?? null;
+/** Coluna onde está o card (ou a própria coluna, se o id for de coluna). */
+export function findColumn(columns: Columns, id: string): string | null {
+  if (id.startsWith(COLUMN_PREFIX)) return id.slice(COLUMN_PREFIX.length);
+  return Object.keys(columns).find((stageId) => columns[stageId].some((lead) => lead.id === id)) ?? null;
 }
 
 /** Durante o arraste: passa o card para a coluna de destino, na altura do card sob o cursor. */
 export function moveAcross(columns: Columns, activeId: string, overId: string): Columns {
-  const from = findStage(columns, activeId);
-  const to = findStage(columns, overId);
+  const from = findColumn(columns, activeId);
+  const to = findColumn(columns, overId);
   if (!from || !to || from === to) return columns;
-  const lead = columns[from].find((l) => l.id === activeId);
+  const lead = columns[from]?.find((l) => l.id === activeId);
   if (!lead) return columns;
-  const target = columns[to];
+  const target = columns[to] ?? [];
   const overIndex = target.findIndex((l) => l.id === overId);
   const index = overIndex === -1 ? target.length : overIndex;
   return {
@@ -43,14 +49,15 @@ export function moveAcross(columns: Columns, activeId: string, overId: string): 
   };
 }
 
-export type Drop = { columns: Columns; stage: PipelineStage; index: number; position: number; lead: PipelineLead };
+export type Drop = { columns: Columns; stageId: string; index: number; position: number; lead: PipelineLead };
 
 /** Ao soltar: reordena dentro da coluna final e calcula a nova posição fracionária. */
 export function finalizeDrop(columns: Columns, activeId: string, overId: string): Drop | null {
-  const stage = findStage(columns, activeId);
-  if (!stage) return null;
-  const list = columns[stage];
+  const stageId = findColumn(columns, activeId);
+  const list = stageId ? columns[stageId] : undefined;
+  if (!stageId || !list) return null;
   const oldIndex = list.findIndex((l) => l.id === activeId);
+  if (oldIndex === -1) return null;
   const overIndex = list.findIndex((l) => l.id === overId);
   const newIndex = overIndex === -1 ? oldIndex : overIndex;
   const reordered = list.slice();
@@ -59,14 +66,15 @@ export function finalizeDrop(columns: Columns, activeId: string, overId: string)
   const position = positionBetween(reordered[newIndex - 1]?.position, reordered[newIndex + 1]?.position);
   const moved = { ...lead, position };
   reordered[newIndex] = moved;
-  return { columns: { ...columns, [stage]: reordered }, stage, index: newIndex, position, lead: moved };
+  return { columns: { ...columns, [stageId]: reordered }, stageId, index: newIndex, position, lead: moved };
 }
 
 /** Aplica campos a um lead onde quer que ele esteja. */
 export function patchLead(columns: Columns, id: string, patch: Partial<PipelineLead>): Columns {
-  const stage = findStage(columns, id);
-  if (!stage) return columns;
-  return { ...columns, [stage]: columns[stage].map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)) };
+  const stageId = findColumn(columns, id);
+  const list = stageId ? columns[stageId] : undefined;
+  if (!stageId || !list) return columns;
+  return { ...columns, [stageId]: list.map((lead) => (lead.id === id ? { ...lead, ...patch } : lead)) };
 }
 
 export type PipelineFilters = {

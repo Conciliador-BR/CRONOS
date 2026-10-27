@@ -6,13 +6,13 @@ import { ReferrerRanking } from "@/features/comercial/components/insights/referr
 import { InsightsKpis, SourceBreakdown, TemperatureSplit } from "@/features/comercial/components/insights/source-breakdown";
 import { getInsightsData } from "@/features/comercial/insights-queries";
 import { PERIOD_LABELS, parsePeriodParam } from "@/features/comercial/lib/periods";
-import { getStageLabels } from "@/features/comercial/queries";
+import { getTerminalStageLabels } from "@/features/comercial/queries";
 
 export const metadata: Metadata = { title: "Insights" };
 
 export default async function Page({ searchParams }: PageProps<"/comercial/insights">) {
   const period = parsePeriodParam((await searchParams).periodo);
-  const [data, stageLabels] = await Promise.all([getInsightsData(period), getStageLabels()]);
+  const [data, stageLabels] = await Promise.all([getInsightsData(period), getTerminalStageLabels()]);
 
   return (
     <>
@@ -28,7 +28,7 @@ export default async function Page({ searchParams }: PageProps<"/comercial/insig
           <TemperatureSplit stats={data.sources} />
         </div>
         <ReferrerRanking referrers={data.referrers} />
-        <LostReasons lost={data.lost} groups={data.reasonGroups} lostStageLabel={stageLabels.cliente_perdido} />
+        <LostReasons lost={data.lost} groups={data.reasonGroups} lostStageLabel={stageLabels.perdido} />
       </div>
     </>
   );

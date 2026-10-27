@@ -4,7 +4,10 @@ export type MarketingLead = {
   id: string;
   name: string;
   companyName: string | null;
+  /** Enum legado derivado da coluna (fechado/perdido/aberto). */
   stage: string;
+  /** Coluna do pipeline (`pipeline_stages.id`), para mostrar o nome atual. */
+  stageId: string;
   temperature: "quente" | "frio";
   createdAt: string;
   dealValueCents: number | null;

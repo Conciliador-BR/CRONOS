@@ -7,13 +7,13 @@ import { GoalsOverview, SellerRanking } from "@/features/comercial/components/de
 import { TeamGrid } from "@/features/comercial/components/desempenho/team-grid";
 import { formatMonthLabel, parseMonthParam, toMonthKey } from "@/features/comercial/lib/months";
 import { getPerformanceData } from "@/features/comercial/performance-queries";
-import { getStageLabels } from "@/features/comercial/queries";
+import { getTerminalStageLabels } from "@/features/comercial/queries";
 
 export const metadata: Metadata = { title: "Desempenho" };
 
 export default async function Page({ searchParams }: PageProps<"/comercial/desempenho">) {
   const month = parseMonthParam((await searchParams).mes);
-  const [data, stageLabels] = await Promise.all([getPerformanceData(month), getStageLabels()]);
+  const [data, stageLabels] = await Promise.all([getPerformanceData(month), getTerminalStageLabels()]);
   const monthLabel = formatMonthLabel(month);
 
   return (
@@ -27,7 +27,7 @@ export default async function Page({ searchParams }: PageProps<"/comercial/desem
           <SellerRanking sellers={data.sellers} monthLabel={monthLabel} />
           <GoalsOverview sellers={data.sellers} monthLabel={monthLabel} />
         </div>
-        <LostClients lost={data.lostClients} monthLabel={monthLabel} lostStageLabel={stageLabels.cliente_perdido} />
+        <LostClients lost={data.lostClients} monthLabel={monthLabel} lostStageLabel={stageLabels.perdido} />
         <section aria-labelledby="equipe" className="flex flex-col gap-3">
           <div>
             <h2 id="equipe" className="text-lg font-semibold">

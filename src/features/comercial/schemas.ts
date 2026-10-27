@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { parseBrlToCents } from "@/lib/format/money";
-import { DEAL_TYPES, LEAD_SOURCES, LEAD_TEMPERATURES, PIPELINE_STAGES } from "./constants";
+import { DEAL_TYPES, LEAD_SOURCES, LEAD_TEMPERATURES } from "./constants";
 import { isMonthKey, type MonthKey } from "./lib/months";
-import { STAGE_LABEL_MAX } from "./lib/stage-labels";
+import { STAGE_LABEL_MAX } from "./lib/stages";
 
 /** Teto de valor aceito (R$ 1 bilhão) para evitar digitação absurda. */
 const MAX_CENTS = 100_000_000_000;
@@ -72,7 +72,7 @@ export type UpdateLeadInput = z.input<typeof updateLeadSchema>;
 
 export const moveLeadSchema = z.object({
   leadId: z.uuid("Lead inválido."),
-  toStage: z.enum(PIPELINE_STAGES, "Etapa inválida."),
+  toStageId: z.uuid("Etapa inválida."),
   position: z.number().finite("Posição inválida."),
   dealType: z.enum(DEAL_TYPES, "Escolha o tipo de negócio.").optional(),
   dealValue: moneyText({ allowZero: false }).optional(),
@@ -98,13 +98,38 @@ export const salesGoalSchema = z.object({
 });
 export type SalesGoalInput = z.input<typeof salesGoalSchema>;
 
-/** Novo nome de uma etapa do pipeline (a etapa continua a mesma; só o nome exibido muda). */
-export const renameStageSchema = z.object({
-  stage: z.enum(PIPELINE_STAGES, "Etapa inválida."),
-  label: z
-    .string("Informe o nome da etapa.")
-    .trim()
-    .min(1, "Informe o nome da etapa.")
-    .max(STAGE_LABEL_MAX, `Use até ${STAGE_LABEL_MAX} caracteres.`),
-});
+const stageLabel = z
+  .string("Informe o nome da etapa.")
+  .trim()
+  .min(1, "Informe o nome da etapa.")
+  .max(STAGE_LABEL_MAX, `Use até ${STAGE_LABEL_MAX} caracteres.`);
+
+const stageId = z.uuid("Etapa inválida.");
+
+/** Nova coluna aberta; sem `afterId`, entra antes da primeira coluna de fechado/perdido. */
+export const createStageSchema = z.object({ label: stageLabel, afterId: stageId.optional() });
+export type CreateStageInput = z.input<typeof createStageSchema>;
+
+/** Novo nome de uma coluna (inclusive fechado e perdido). */
+export const renameStageSchema = z.object({ id: stageId, label: stageLabel });
 export type RenameStageInput = z.input<typeof renameStageSchema>;
+
+/** Nova posição de uma coluna (troca de lugar com a vizinha). */
+export const moveStageSchema = z.object({ id: stageId, position: z.number().finite("Posição inválida.") });
+export type MoveStageInput = z.input<typeof moveStageSchema>;
+
+/** Exclusão de coluna aberta; os leads dela vão para `moveLeadsTo` (outra coluna aberta). */
+export const deleteStageSchema = z
+  .object({
+    id: stageId,
+    moveLeadsTo: z
+      .string()
+      .optional()
+      .transform((value) => (value ? value : null))
+      .pipe(z.uuid("Escolha para qual etapa os leads vão.").nullable()),
+  })
+  .refine((data) => data.moveLeadsTo !== data.id, {
+    path: ["moveLeadsTo"],
+    message: "Escolha outra etapa para os leads.",
+  });
+export type DeleteStageInput = z.input<typeof deleteStageSchema>;
