@@ -14,10 +14,12 @@ import {
   createLeadSchema,
   leadIdSchema,
   moveLeadSchema,
+  renameStageSchema,
   salesGoalSchema,
   updateLeadSchema,
   type CreateLeadInput,
   type MoveLeadInput,
+  type RenameStageInput,
   type SalesGoalInput,
   type UpdateLeadInput,
 } from "./schemas";
@@ -221,6 +223,27 @@ export async function setSalesGoal(input: SalesGoalInput): Promise<ActionResult>
           .from("sales_goals")
           .upsert({ profile_id: profileId, month: monthDate, goal_cents: goal }, { onConflict: "profile_id,month" });
   if (error) return dbFailure("set-sales-goal", error);
+
+  revalidateComercial();
+  return { ok: true };
+}
+
+/** Renomeia uma etapa do pipeline (só admin/gestor). A etapa continua a mesma; só o nome exibido muda. */
+export async function renameStage(input: RenameStageInput): Promise<ActionResult> {
+  const parsed = renameStageSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+  const profile = await requireManager();
+  if (!profile) return { ok: false, error: "Só administradores e gestores renomeiam etapas." };
+  const supabase = await createClient();
+
+  const { stage, label } = parsed.data;
+  const { data, error } = await supabase
+    .from("pipeline_stage_labels")
+    .update({ label, updated_by: profile.id })
+    .eq("stage", stage)
+    .select("stage");
+  if (error) return dbFailure("rename-stage", error);
+  if (!data?.length) return { ok: false, error: "Não foi possível renomear esta etapa. Atualize a página e tente de novo." };
 
   revalidateComercial();
   return { ok: true };

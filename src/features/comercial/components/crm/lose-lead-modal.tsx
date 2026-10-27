@@ -6,6 +6,7 @@ import { Field } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { Textarea } from "@/components/ui/textarea";
 import { loseLeadSchema } from "../../schemas";
+import { useStageLabels } from "../shared/stage-labels-context";
 import type { PromptAnswer } from "./use-pipeline-dnd";
 
 type Props = {
@@ -19,12 +20,13 @@ const FORM_ID = "perder-lead";
 
 /** Pede o motivo ao soltar um lead em "Cliente perdido". Cancelar devolve o card. */
 export function LoseLeadModal({ open, leadName, onCancel, onConfirm }: Props) {
+  const labels = useStageLabels();
   return (
     <Modal
       open={open}
       onClose={onCancel}
       closeOnBackdrop={false}
-      title="Cliente perdido"
+      title={labels.cliente_perdido}
       description={`O motivo de ${leadName} aparece em Insights.`}
       footer={
         <>

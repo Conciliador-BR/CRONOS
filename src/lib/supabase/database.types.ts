@@ -421,18 +421,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "cards_cover_attachment_id_fkey"
-            columns: ["cover_attachment_id", "id"]
-            isOneToOne: false
-            referencedRelation: "card_attachments"
-            referencedColumns: ["id", "card_id"]
-          },
-          {
             foreignKeyName: "cards_board_id_fkey"
             columns: ["board_id"]
             isOneToOne: false
             referencedRelation: "boards"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cards_cover_attachment_id_fkey"
+            columns: ["cover_attachment_id", "id"]
+            isOneToOne: false
+            referencedRelation: "card_attachments"
+            referencedColumns: ["id", "card_id"]
           },
           {
             foreignKeyName: "cards_created_by_fkey"
@@ -447,6 +447,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seller_performance"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "cards_list_board_fkey"
+            columns: ["list_id", "board_id"]
+            isOneToOne: false
+            referencedRelation: "board_lists"
+            referencedColumns: ["id", "board_id"]
           },
           {
             foreignKeyName: "cards_list_id_fkey"
@@ -580,13 +587,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "companies_parent_company_id_fkey"
-            columns: ["parent_company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "companies_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -606,6 +606,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seller_performance"
             referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "companies_parent_company_id_fkey"
+            columns: ["parent_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1169,6 +1176,42 @@ export type Database = {
           },
         ]
       }
+      pipeline_stage_labels: {
+        Row: {
+          label: string
+          stage: Database["public"]["Enums"]["pipeline_stage"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          label: string
+          stage: Database["public"]["Enums"]["pipeline_stage"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          label?: string
+          stage?: Database["public"]["Enums"]["pipeline_stage"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stage_labels_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stage_labels_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "seller_performance"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean
@@ -1312,6 +1355,10 @@ export type Database = {
       }
       is_manager: { Args: never; Returns: boolean }
       is_member: { Args: never; Returns: boolean }
+      promote_bootstrap_admin: {
+        Args: { confirmed_at: string; user_email: string; user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "gestor" | "funcionario"

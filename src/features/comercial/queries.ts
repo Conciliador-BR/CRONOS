@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/database.types";
 import { computeLeadSourceStats, type LeadSourceStats } from "./lib/lead-stats";
+import { mergeStageLabels, type StageLabels } from "./lib/stage-labels";
 import type { PerformanceMember } from "./lib/performance";
 import type { MemberOption, PipelineLead, StageHistoryEntry } from "./types";
 
@@ -86,28 +87,46 @@ function toPipelineLead(row: LeadRow): PipelineLead {
   };
 }
 
+/**
+ * Nomes das etapas do pipeline (editáveis por admin/gestor). Uma vez por requisição.
+ * Se a leitura falhar, registra um aviso e usa os nomes padrão para não derrubar a página.
+ */
+export const getStageLabels = cache(async (): Promise<StageLabels> => {
+  // Sem try/catch: cookies() lança um sinal interno do Next que precisa subir (rota dinâmica).
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("pipeline_stage_labels").select("stage, label");
+  if (error) {
+    logger.warn({ scope: "stage-labels", code: error.code, message: error.message }, "comercial: nomes das etapas padrão");
+    return mergeStageLabels(null);
+  }
+  return mergeStageLabels(data);
+});
+
 export type PipelineData = {
   leads: PipelineLead[];
   members: MemberOption[];
   currentUserId: string;
   canManage: boolean;
+  stageLabels: StageLabels;
 };
 
 /** Todos os leads do pipeline (ordenados por etapa e posição) e os funcionários ativos. */
 export async function getPipelineData(): Promise<PipelineData> {
   const profile = await requireMember();
   const supabase = await createClient();
-  const [rows, members] = await Promise.all([
+  const [rows, members, stageLabels] = await Promise.all([
     fetchAllRows("pipeline", (from, to) =>
       supabase.from("leads").select("*").order("stage").order("position").order("created_at").range(from, to),
     ),
     getActiveMembers(),
+    getStageLabels(),
   ]);
   return {
     leads: rows.map(toPipelineLead),
     members: members.map(({ id, name, avatarUrl }) => ({ id, name, avatarUrl })),
     currentUserId: profile.id,
     canManage: isManager(profile),
+    stageLabels,
   };
 }
 

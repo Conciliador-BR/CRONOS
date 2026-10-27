@@ -5,10 +5,11 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { formatCents } from "@/lib/format/money";
 import { cn } from "@/lib/utils";
-import { STAGE_LABELS, type PipelineStage } from "../../constants";
+import type { PipelineStage } from "../../constants";
 import { columnId } from "../../lib/pipeline";
 import type { MemberOption, PipelineLead } from "../../types";
 import { SortableLeadCard } from "./sortable-lead-card";
+import { StageTitle, type RenameStage } from "./stage-title";
 
 const accent: Partial<Record<PipelineStage, string>> = {
   cliente_fechado: "bg-success",
@@ -17,6 +18,10 @@ const accent: Partial<Record<PipelineStage, string>> = {
 
 type Props = {
   stage: PipelineStage;
+  /** Nome exibido da etapa (pode ter sido renomeado por um gestor). */
+  label: string;
+  /** Só para admin/gestor: mostra o botão de renomear a etapa. */
+  onRename?: RenameStage;
   leads: PipelineLead[];
   /** Total da coluna sem filtros (mostrado quando há filtro ativo). */
   totalCount: number;
@@ -25,7 +30,7 @@ type Props = {
   onOpen: (leadId: string) => void;
 };
 
-export const PipelineColumn = memo(function PipelineColumn({ stage, leads, totalCount, membersById, canEdit, onOpen }: Props) {
+export const PipelineColumn = memo(function PipelineColumn({ stage, label, onRename, leads, totalCount, membersById, canEdit, onOpen }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: columnId(stage) });
   const headingId = `coluna-${stage}`;
   const sum =
@@ -36,11 +41,9 @@ export const PipelineColumn = memo(function PipelineColumn({ stage, leads, total
       aria-labelledby={headingId}
       className="flex w-[17rem] shrink-0 snap-start flex-col rounded-xl border border-border bg-surface-2/60 sm:w-72"
     >
-      <header className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+      <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border px-3 py-2.5">
         <span aria-hidden className={cn("size-2 rounded-full", accent[stage] ?? "bg-primary")} />
-        <h2 id={headingId} className="min-w-0 flex-1 truncate text-sm font-semibold text-fg">
-          {STAGE_LABELS[stage]}
-        </h2>
+        <StageTitle stage={stage} label={label} headingId={headingId} onRename={onRename} />
         <span className="rounded-full bg-surface-3 px-2 py-0.5 text-xs text-muted tabular-nums">
           {leads.length === totalCount ? leads.length : `${leads.length}/${totalCount}`}
           <span className="sr-only"> leads</span>

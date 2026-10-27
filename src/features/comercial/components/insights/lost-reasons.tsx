@@ -1,20 +1,26 @@
 import { CircleSlash } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { STAGE_LABELS } from "../../constants";
 import type { LostLead } from "../../insights-queries";
 import { formatDate } from "../../lib/format";
 import type { KeywordGroup, ReasonGroup } from "../../lib/lead-stats";
 
-type Props = { lost: LostLead[]; groups: { phrases: ReasonGroup[]; keywords: KeywordGroup[] } };
+type Props = {
+  lost: LostLead[];
+  groups: { phrases: ReasonGroup[]; keywords: KeywordGroup[] };
+  /** Nome atual da etapa "Cliente perdido" (pode ter sido renomeada). */
+  lostStageLabel?: string;
+};
 
 /** Por que os leads não fecham: agrupamento por texto e palavra-chave + lista completa. */
-export function LostReasons({ lost, groups }: Props) {
+export function LostReasons({ lost, groups, lostStageLabel = STAGE_LABELS.cliente_perdido }: Props) {
   return (
     <Card>
       <CardHeader>
         <CardTitle as="h2">Por que os leads não fecham</CardTitle>
         <CardDescription>
-          Motivos informados ao mover para Cliente perdido ({lost.length} no período, pela data da perda).
+          Motivos informados ao mover para {lostStageLabel} ({lost.length} no período, pela data da perda).
         </CardDescription>
       </CardHeader>
       <CardContent>

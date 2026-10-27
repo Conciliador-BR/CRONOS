@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useOptimistic, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   DndContext,
@@ -17,10 +17,12 @@ import { KanbanSquare } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PIPELINE_STAGES } from "../../constants";
-import { loadLeadHistory } from "../../actions";
+import { PIPELINE_STAGES, type PipelineStage } from "../../constants";
+import { loadLeadHistory, renameStage } from "../../actions";
+import type { StageLabels } from "../../lib/stage-labels";
 import { EMPTY_FILTERS, findStage, matchesFilters, type PipelineFilters } from "../../lib/pipeline";
 import type { DataResult, MemberOption, PipelineLead, StageHistoryEntry } from "../../types";
+import { StageLabelsProvider } from "../shared/stage-labels-context";
 import { CloseDealModal } from "./close-deal-modal";
 import { LeadCardContent } from "./lead-card";
 import { LeadDrawer } from "./lead-drawer";
@@ -36,11 +38,25 @@ type Props = {
   members: MemberOption[];
   currentUserId: string;
   canManage: boolean;
+  /** Nomes das etapas vindos do banco (com os padrões como reserva). */
+  stageLabels: StageLabels;
 };
 
 /** Pipeline do CRM: filtros, colunas com arrastar e soltar, perguntas ao fechar/perder e gaveta do lead (`?lead=<id>`). */
-export function PipelineBoard({ leads, members, currentUserId, canManage }: Props) {
+export function PipelineBoard({ leads, members, currentUserId, canManage, stageLabels }: Props) {
   const board = usePipelineDnd(leads);
+  // Renomear mostra o nome novo na hora; se o servidor recusar, a transição termina e o nome antigo volta.
+  const [labels, setOptimisticLabel] = useOptimistic(
+    stageLabels,
+    (current, change: { stage: PipelineStage; label: string }) => ({ ...current, [change.stage]: change.label }),
+  );
+  const rename = useCallback(
+    (stage: PipelineStage, label: string) => {
+      setOptimisticLabel({ stage, label });
+      return renameStage({ stage, label });
+    },
+    [setOptimisticLabel],
+  );
   const [filters, setFilters] = useState<PipelineFilters>(EMPTY_FILTERS);
   const deferredFilters = useDeferredValue(filters);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -54,7 +70,7 @@ export function PipelineBoard({ leads, members, currentUserId, canManage }: Prop
   );
 
   const membersById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
-  const announcements = useMemo(() => createAnnouncements(board.getColumns), [board.getColumns]);
+  const announcements = useMemo(() => createAnnouncements(board.getColumns, labels), [board.getColumns, labels]);
 
   const canEdit = useCallback(
     (lead: PipelineLead) => canManage || lead.ownerId === currentUserId || lead.createdBy === currentUserId,
@@ -97,98 +113,102 @@ export function PipelineBoard({ leads, members, currentUserId, canManage }: Prop
     <NewLeadButton
       members={members}
       currentUserId={currentUserId}
-      onCreated={(name) => setNotice(`Lead ${name} criado em Lead recebido.`)}
+      onCreated={(name) => setNotice(`Lead ${name} criado em ${labels.lead_recebido}.`)}
     />
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <PipelineFiltersBar
-            filters={filters}
-            onChange={setFilters}
-            members={members}
-            visibleCount={visibleCount}
-            totalCount={totalCount}
-          />
-        </div>
-        {totalCount > 0 ? <div className="shrink-0">{newLead}</div> : null}
-      </div>
-
-      {board.error ? (
-        <Alert tone="danger" title="O card voltou para onde estava">
-          <span className="flex flex-wrap items-center gap-2">
-            {board.error}
-            <Button variant="ghost" size="sm" onClick={board.dismissError}>
-              Fechar aviso
-            </Button>
-          </span>
-        </Alert>
-      ) : null}
-      {notice ? <Alert tone="success">{notice}</Alert> : null}
-
-      {totalCount === 0 ? (
-        <EmptyState
-          icon={KanbanSquare}
-          title="Nenhum lead no pipeline"
-          description="Cadastre o primeiro lead para começar a acompanhar as etapas até o fechamento."
-          action={newLead}
-        />
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          accessibility={{ announcements, screenReaderInstructions }}
-          {...board.handlers}
-        >
-          <div
-            aria-busy={board.isSaving || undefined}
-            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0"
-          >
-            {PIPELINE_STAGES.map((stage) => (
-              <PipelineColumn
-                key={stage}
-                stage={stage}
-                leads={visible[stage]}
-                totalCount={columns[stage].length}
-                membersById={membersById}
-                canEdit={canEdit}
-                onOpen={openLead}
-              />
-            ))}
+    <StageLabelsProvider labels={labels}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <PipelineFiltersBar
+              filters={filters}
+              onChange={setFilters}
+              members={members}
+              visibleCount={visibleCount}
+              totalCount={totalCount}
+            />
           </div>
-          <DragOverlay>
-            {activeLead ? (
-              <div className="w-[17rem] cursor-grabbing rounded-lg border border-primary/60 bg-surface p-3 shadow-xl shadow-black/60 sm:w-72">
-                <LeadCardContent lead={activeLead} owner={activeLead.ownerId ? membersById.get(activeLead.ownerId) : undefined} />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      )}
+          {totalCount > 0 ? <div className="shrink-0">{newLead}</div> : null}
+        </div>
 
-      <CloseDealModal
-        open={board.prompt?.kind === "fechado"}
-        leadName={board.prompt?.lead.name ?? ""}
-        onCancel={board.cancelPrompt}
-        onConfirm={board.confirmPrompt}
-      />
-      <LoseLeadModal
-        open={board.prompt?.kind === "perdido"}
-        leadName={board.prompt?.lead.name ?? ""}
-        onCancel={board.cancelPrompt}
-        onConfirm={board.confirmPrompt}
-      />
-      <LeadDrawer
-        lead={selected}
-        members={members}
-        membersById={membersById}
-        canEdit={selected ? canEdit(selected) : false}
-        canDelete={canManage}
-        historyPromise={historyPromise}
-        onClose={() => setSelectedId(null)}
-      />
-    </div>
+        {board.error ? (
+          <Alert tone="danger" title="O card voltou para onde estava">
+            <span className="flex flex-wrap items-center gap-2">
+              {board.error}
+              <Button variant="ghost" size="sm" onClick={board.dismissError}>
+                Fechar aviso
+              </Button>
+            </span>
+          </Alert>
+        ) : null}
+        {notice ? <Alert tone="success">{notice}</Alert> : null}
+
+        {totalCount === 0 ? (
+          <EmptyState
+            icon={KanbanSquare}
+            title="Nenhum lead no pipeline"
+            description="Cadastre o primeiro lead para começar a acompanhar as etapas até o fechamento."
+            action={newLead}
+          />
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            accessibility={{ announcements, screenReaderInstructions }}
+            {...board.handlers}
+          >
+            <div
+              aria-busy={board.isSaving || undefined}
+              className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0"
+            >
+              {PIPELINE_STAGES.map((stage) => (
+                <PipelineColumn
+                  key={stage}
+                  stage={stage}
+                  label={labels[stage]}
+                  onRename={canManage ? rename : undefined}
+                  leads={visible[stage]}
+                  totalCount={columns[stage].length}
+                  membersById={membersById}
+                  canEdit={canEdit}
+                  onOpen={openLead}
+                />
+              ))}
+            </div>
+            <DragOverlay>
+              {activeLead ? (
+                <div className="w-[17rem] cursor-grabbing rounded-lg border border-primary/60 bg-surface p-3 shadow-xl shadow-black/60 sm:w-72">
+                  <LeadCardContent lead={activeLead} owner={activeLead.ownerId ? membersById.get(activeLead.ownerId) : undefined} />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        )}
+
+        <CloseDealModal
+          open={board.prompt?.kind === "fechado"}
+          leadName={board.prompt?.lead.name ?? ""}
+          onCancel={board.cancelPrompt}
+          onConfirm={board.confirmPrompt}
+        />
+        <LoseLeadModal
+          open={board.prompt?.kind === "perdido"}
+          leadName={board.prompt?.lead.name ?? ""}
+          onCancel={board.cancelPrompt}
+          onConfirm={board.confirmPrompt}
+        />
+        <LeadDrawer
+          lead={selected}
+          members={members}
+          membersById={membersById}
+          canEdit={selected ? canEdit(selected) : false}
+          canDelete={canManage}
+          historyPromise={historyPromise}
+          onClose={() => setSelectedId(null)}
+        />
+      </div>
+    </StageLabelsProvider>
   );
 }

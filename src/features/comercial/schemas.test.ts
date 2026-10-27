@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closeDealSchema, createLeadSchema, moveLeadSchema, salesGoalSchema } from "./schemas";
+import { closeDealSchema, createLeadSchema, moveLeadSchema, renameStageSchema, salesGoalSchema } from "./schemas";
 
 const base = { name: "Maria", source: "venda", temperature: "quente" };
 
@@ -57,5 +57,21 @@ describe("salesGoalSchema", () => {
       goal: 0,
     });
     expect(salesGoalSchema.safeParse({ profileId: id, month: "2026-13", goal: "10" }).success).toBe(false);
+  });
+});
+
+describe("renameStageSchema", () => {
+  it("apara o nome e aceita até 40 caracteres", () => {
+    expect(renameStageSchema.parse({ stage: "follow_up", label: "  Retorno  " })).toEqual({ stage: "follow_up", label: "Retorno" });
+    expect(renameStageSchema.safeParse({ stage: "follow_up", label: "a".repeat(40) }).success).toBe(true);
+  });
+
+  it("recusa nome vazio, longo demais ou etapa inválida", () => {
+    const empty = renameStageSchema.safeParse({ stage: "follow_up", label: "   " });
+    expect(empty.success).toBe(false);
+    expect(empty.error?.issues[0].message).toBe("Informe o nome da etapa.");
+    expect(renameStageSchema.safeParse({ stage: "follow_up", label: "a".repeat(41) }).success).toBe(false);
+    expect(renameStageSchema.safeParse({ stage: "nova_etapa", label: "Nova" }).success).toBe(false);
+    expect(renameStageSchema.safeParse({ stage: "follow_up" }).success).toBe(false);
   });
 });

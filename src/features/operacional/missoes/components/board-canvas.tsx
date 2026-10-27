@@ -164,7 +164,7 @@ export function BoardCanvas() {
       }}
       accessibility={{ announcements, screenReaderInstructions }}
     >
-      <div className="flex h-full items-start gap-3 overflow-x-auto overscroll-x-contain p-3 pb-4 [scrollbar-color:rgba(255,255,255,.3)_transparent]">
+      <div className="flex h-full items-start gap-3 overflow-x-auto overscroll-x-contain p-3 pb-16 [scrollbar-color:rgba(255,255,255,.3)_transparent]">
         <SortableContext items={state.listOrder} strategy={horizontalListSortingStrategy}>
           {state.listOrder.map((listId) => (
             <BoardColumn key={listId} listId={listId} />

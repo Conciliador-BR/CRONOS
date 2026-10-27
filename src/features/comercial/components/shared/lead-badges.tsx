@@ -1,6 +1,9 @@
+"use client";
+
 import { Flame, Snowflake } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { SOURCE_LABELS, STAGE_LABELS, TEMPERATURE_LABELS, type LeadSource, type LeadTemperature, type PipelineStage } from "../../constants";
+import { useStageLabels } from "./stage-labels-context";
+import { SOURCE_LABELS, TEMPERATURE_LABELS, type LeadSource, type LeadTemperature, type PipelineStage } from "../../constants";
 
 export function TemperatureBadge({ temperature }: { temperature: LeadTemperature }) {
   const Icon = temperature === "quente" ? Flame : Snowflake;
@@ -25,6 +28,8 @@ const stageVariant: Record<PipelineStage, "neutral" | "primary" | "success" | "d
   cliente_perdido: "danger",
 };
 
+/** Nome da etapa como o gestor definiu (componente cliente: lê o contexto do CRM). */
 export function StageBadge({ stage }: { stage: PipelineStage }) {
-  return <Badge variant={stageVariant[stage]}>{STAGE_LABELS[stage]}</Badge>;
+  const labels = useStageLabels();
+  return <Badge variant={stageVariant[stage]}>{labels[stage]}</Badge>;
 }
