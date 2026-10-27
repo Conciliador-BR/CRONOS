@@ -1,0 +1,31 @@
+# Exclusões do Graphify (adaptado de templates/project/.graphifyignore.example do toolkit).
+# Nunca indexar segredos, dependências, skills de terceiros, caches ou saídas geradas.
+.git/
+.next/
+node_modules/
+out/
+dist/
+build/
+coverage/
+graphify-out/
+.agents/
+.claude/
+.codex/
+.vercel/
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+auth.json
+credentials.json
+*.log
+*.tsbuildinfo
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+skills-lock.json
+next-env.d.ts
+src/lib/supabase/database.types.ts
+public/

@@ -15,7 +15,7 @@ Detalhes de ambiente, primeiro acesso e banco: [docs/onboarding.md](docs/onboard
 ## Verificar
 
 ```bash
-pnpm check   # lint + tipos + testes + build
+pnpm check   # lint, lint tipado, self-check das regras, tipos, testes e build
 ```
 
 ## Mapa dos documentos
@@ -30,7 +30,8 @@ pnpm check   # lint + tipos + testes + build
 | [docs/onboarding.md](docs/onboarding.md) | Preparação local e primeiro acesso |
 | [docs/quality.md](docs/quality.md) | Checks e estratégia de testes |
 | [docs/security.md](docs/security.md) | Revisão de segurança, testes de RLS, riscos aceitos |
-| [docs/setup.md](docs/setup.md) | Evidências do setup com o vibe-coding-toolkit |
+| [docs/setup.md](docs/setup.md) | Evidências do setup com o vibe-coding-toolkit, ferramentas e pendências |
+| [docs/prompts/](docs/prompts/) | Prompts reutilizáveis: revisão de segurança e melhoria do harness |
 
 ## Stack
 

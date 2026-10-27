@@ -22,11 +22,13 @@ CRM interno (pt-BR) que une missões estilo Trello, agenda, documentação de AP
 
 - Instalar: `pnpm install`
 - Desenvolver: `pnpm dev`
-- Lint: `pnpm lint`
+- Lint: `pnpm lint` (presets do Next + regras locais `eslint-rules/`: 350 linhas, sem `console`, sem cliente Supabase de servidor em `.tsx`/`src/components`)
+- Lint tipado (promises): `pnpm lint:typed`
+- Self-check das regras locais: `pnpm lint:rules`
 - Tipos: `pnpm typecheck`
 - Testes: `pnpm test`
 - Build: `pnpm build`
-- Verificar tudo: `pnpm check`
+- Verificar tudo: `pnpm check` (não publica, não conecta em produção, não aplica migrations)
 - Tipos do banco: regenerar `src/lib/supabase/database.types.ts` (Supabase MCP `generate_typescript_types` ou `supabase gen types`) após cada migration.
 
 ## Regras do projeto
@@ -41,16 +43,33 @@ CRM interno (pt-BR) que une missões estilo Trello, agenda, documentação de AP
 - Atualize o documento responsável junto com a mudança (produto, arquitetura, design, qualidade, setup).
 - Publicar, enviar mensagens a terceiros, gerar custo ou ação destrutiva exigem autorização.
 
-## Skills do projeto (`.claude/skills/`)
+## Continuidade
+
+- Separe observação, suposição, decisão e evidência. Defina critério de aceite e checks antes de implementar; correção de bug começa reproduzindo e termina com teste de regressão quando viável.
+- Um bloqueio para só o que depende dele; continue o resto autorizado. Respeite pausas e limites; não repita tentativa idêntica sem evidência nova.
+- Trabalho que atravessa sessões ganha handoff curto no `TASKS.md` (modelo: objetivo, estado verificado, evidência, pendências, bloqueios, próxima ação). Ao retomar, confira arquivos, Git e checks antes de confiar no handoff.
+- Quando uma regra recorrente falhar, corrija a causa no teste, na regra de lint ou no documento responsável, não repita a instrução em outro arquivo.
+
+## Ferramentas (detalhes e estado em `docs/setup.md`)
+
+- Plugins do projeto (`.claude/settings.json`): Superpowers (processo proporcional ao escopo), Ponytail `full` (menor mudança completa), Caveman (conversa concisa em português; código, docs e commits em texto normal), Context7 (docs atuais: resolva a biblioteca e consulte um conceito por vez; nunca envie segredos ou código privado; sem Context7, use `node_modules/next/dist/docs` e fontes oficiais).
+- RTK: com hook nativo ativo, use comandos normais (sem duplo prefixo); `rtk proxy <cmd>` para saída completa.
+- Graphify: `graphify-out/graph.json` local (só código, sem LLM). Confirme no código o que o grafo sugerir; registre se estiver desatualizado.
+- Modelos: preserve o cliente, o modelo principal e a autenticação. Subagentes usam o modelo mais leve capaz de cumprir os critérios (busca e inventário leves; segurança, RLS, migrations e revisão crítica com mais capacidade).
+
+## Skills do projeto (`.claude/skills/`, lock em `skills-lock.json`)
 
 - `vercel-react-best-practices`, `vercel-composition-patterns`: ao escrever ou revisar React/Next.
-- `web-design-guidelines`: revisão de interface e acessibilidade.
-- `writing-guidelines`: revisão de documentação.
+- `web-design-guidelines`: revisão de interface e acessibilidade. `writing-guidelines`: revisão de documentação.
 - `supabase-postgres-best-practices`: antes de schema, SQL, RLS ou migrations.
-- `find-skills`: quando faltar uma capacidade concreta.
-- Revisão de segurança: `docs/quality.md` descreve o prompt reutilizável.
+- `next-dev-loop`: conferir no `pnpm dev` (rotas, erros, navegador) depois de mudar páginas; exige `agent-browser` no PATH. `next-bundle-optimizer`: auditoria de bundle só com pedido.
+- `differential-review`: diffs sensíveis (auth, RLS, Storage, service role). Revisão de base: `docs/prompts/security-review.md`.
+- `vercel-react-view-transitions`: só quando pedirem animações. `deploy-to-vercel`, `vercel-cli-with-tokens`, `vercel-optimize`: só com pedido explícito de publicação/otimização na Vercel.
+- `find-skills`: quando faltar uma capacidade concreta. Skill instalada não autoriza publicar, migrar ou adicionar dependência.
 
 ## Delegação
 
 - Um escritor por arquivo; revisores só leem. O coordenador cuida de `package.json`, lockfile, migrations e integração.
 - Cada tarefa delegada recebe objetivo, arquivos permitidos, critérios de aceite e checks.
+- O coordenador confere o diff e roda os checks antes de aceitar o resultado. Revisão independente para mudanças não triviais, com escopo pelo risco.
+- Sem push blockers, hooks de Git ou exigência de branch/worktree.
