@@ -2,7 +2,7 @@
 // nothing else -- no test framework, no dev dependency beyond ESLint.
 //
 // Usage, from the root of a project that installed the rules:
-//   node .claude/skills/eslint-quality-gates/verify.mjs
+//   pnpm lint:rules   (CRONOS: node scripts/verify-quality-rules.mjs ./eslint-rules/index.cjs)
 // Pass a path to check a copy that lives somewhere else:
 //   node verify.mjs ./eslint-rules/index.cjs
 //

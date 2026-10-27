@@ -28,6 +28,6 @@ export default defineConfig([
     // Error boundaries do cliente registram o erro no console do navegador (padrão do Next);
     // o servidor já registra o mesmo erro com o `digest`.
     files: ["src/app/**/error.tsx", "src/app/**/global-error.tsx"],
-    rules: { "quality/no-direct-console": "off" },
+    rules: { "quality/no-direct-console": ["error", { allow: ["error"], logger: "o logger de `@/lib/logger` (no cliente, remova a saída)" }] },
   },
 ]);

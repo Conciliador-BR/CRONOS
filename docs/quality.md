@@ -17,10 +17,10 @@
 | Regra | Severidade | Alcance | Exceções justificadas |
 |---|---|---|---|
 | `quality/max-lines` (350) | error | todo código; testes e arquivos só de tipos ficam fora | `src/lib/supabase/database.types.ts` (gerado) |
-| `quality/no-direct-console` | error | `src/**` exceto testes | `src/app/**/error.tsx` e `global-error.tsx` (error boundary do cliente; o servidor já registra com `digest`) |
+| `quality/no-direct-console` | error | `src/**` exceto testes | `src/app/**/error.tsx` e `global-error.tsx` podem usar só `console.error` (error boundary do cliente; o servidor já registra com `digest`) |
 | `quality/no-direct-data-access` | error | `.tsx` e `src/components/**` não importam `createClient`/`createAdminClient` de `@/lib/supabase/server` ou `/admin` | nenhuma. Rotas e actions em `src/app/**/*.ts` podem usar o cliente de servidor |
 
-Medição em 2026-10-27, antes de ligar: 1 `console` (exceção acima), 1 arquivo gerado, 0 importações de dados indevidas. A regra não substitui `requireRole` nem RLS.
+Medição em 2026-10-27, antes de ligar: 1 `console` (exceção acima), 1 arquivo gerado, 0 importações de dados indevidas. A fronteira de dados compara o especificador exato do `import` (import relativo, reexportação ou `import()` dinâmico passam): é um guia, não uma barreira. Ela não substitui `requireRole` nem RLS.
 
 ## Lint tipado
 
@@ -54,7 +54,7 @@ Medição em 2026-10-27, antes de ligar: 1 `console` (exceção acima), 1 arquiv
 
 ## Avaliação e melhoria do harness
 
-- Avaliar (prompt 14 do toolkit, mesma revisão): depois de mudar instruções, skills, plugins ou orquestração, rode os casos de fumaça em cópias descartáveis de `templates/harness-evaluation/` (fronteira, handoff desatualizado, revisão só leitura) com `scripts/validate-harness.mjs` fora do alcance do agente. Resultados em `docs/setup.md`.
+- Avaliar (prompt 14 do toolkit, mesma revisão): depois de mudar instruções, skills, plugins ou orquestração, rode os casos de fumaça em cópias descartáveis da fixture `templates/harness-evaluation/` do toolkit (fronteira, handoff desatualizado, revisão só leitura), avaliadas pelo `scripts/validate-harness.mjs` do próprio toolkit, fora do alcance do agente. Esses caminhos são do clone do toolkit, não deste repositório. Resultados em `docs/setup.md`.
 - Melhorar: [`docs/prompts/harness-improvement.md`](prompts/harness-improvement.md) (bloco do prompt 15). Método nativo inspirado no Harness2, sem rodar o framework: com uma falha observada, uma comparação de candidato com os mesmos checks; adote só o que a evidência sustentar. Sem falha concreta, nada muda. CLI oficial e benchmarks pagos exigem autorização à parte.
 - Lição registrada em 2026-10-27: nenhum caso falhou; sem mudança de instruções. Revalidar ao trocar de cliente, modelo ou plugins.
 

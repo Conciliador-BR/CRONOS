@@ -11,8 +11,6 @@
 
 ## Decisões e fontes
 
-## Decisões e fontes
-
 | Decisão | Motivo | Fonte |
 |---|---|---|
 | Next.js 16.4.3 estável via `create-next-app@16.4.3` | Padrão do toolkit; canal estável no registry em 2026-10-23 | npm registry, docs em `node_modules/next/dist/docs` |
@@ -34,7 +32,7 @@ Estados: **validado** (rodou e foi conferido), **configurado** (arquivo/instala�
 | Componente | Ação e motivo | Escopo | Estado e evidência |
 |---|---|---|---|
 | Superpowers 7.0.0 | Instalado (`claude-plugins-official`) | Projeto: `.claude/settings.json` | Configurado. `claude plugin list` mostra habilitado; carregamento em sessão nova não observado |
-| Ponytail 5.3.2 (`full`) | Instalado; opções de webhook/ledger deixadas vazias (sem serviço externo) | Projeto | Configurado, idem |
+| Ponytail 5.3.2 (modo padrão `full`) | Instalado; opções de webhook/ledger deixadas vazias (sem serviço externo) | Projeto | Configurado, idem |
 | Caveman 4.0.1 | Instalado; hooks locais sem rede (conferido no código). Português conciso só na conversa | Projeto | Configurado, idem. Plugin avisa que não instala dependências pnpm próprias; hooks usam só Node |
 | Context7 | Plugin oficial (`context7@claude-plugins-official`, MCP remoto `mcp.context7.com`). Marketplace `upstash/context7` removido para não duplicar o servidor | Projeto | **Bloqueado aqui**: rede da nuvem nega o host (403). Validar na máquina com uma consulta real |
 | RTK | Não instalado: binário e hook são de máquina | Máquina | Pendente de autorização: `winget install rtk-ai.rtk` e `rtk init -g` (hook nativo no Windows desde v0.37.2) |
@@ -53,11 +51,13 @@ Estados: **validado** (rodou e foi conferido), **configurado** (arquivo/instala�
 | Anthropic skills (document-skills, skill-creator) | Inaplicável: sem necessidade de gerar Office/PDF no fluxo; o host já oferece criação de skills | — | Rever se surgir exportação de relatórios |
 | aia-harness e outros plugins oficiais | Inaplicável: o harness do projeto já cobre onboarding; evitar duplicar instruções | — | — |
 | Obsidian / memória externa | Inaplicável: sem necessidade concreta nem destino autorizado | — | — |
-| Hooks próprios do cliente | Nenhum criado; só os dos plugins oficiais | — | — |
+| Hooks próprios do cliente | Nenhum criado; só os dos plugins | — | — |
 | Quality gates ESLint do toolkit | Copiados `eslint-rules/` e `scripts/verify-quality-rules.mjs` | Projeto | Validado: `pnpm lint` 0 problemas; `pnpm lint:rules` ok |
 | Lint tipado | `eslint.typed.config.mjs` | Projeto | Validado: 0 erros, 37 avisos legados; ~43 s e ~1,6 GB de pico nesta nuvem |
 | Revisão de segurança reutilizável | Reutilizado `docs/prompts/security-review.md` (mesma revisão) | Projeto | — |
 | Harness2 (método nativo) | Prompt 15 copiado para `docs/prompts/harness-improvement.md` | Projeto | Validado: 3 casos de fumaça passaram (abaixo). CLI oficial não selecionado |
+
+Revisões de terceiros conferidas em 2026-10-27 (os plugins seguem o branch padrão do marketplace e não ficam presos a um commit; ao atualizar, revise de novo os hooks antes de aceitar): `claude-plugins-official` `41f619d`, Superpowers `bb92a77`, Ponytail `09c434a`, Caveman `9b68f7e`. Os hooks de Ponytail e Caveman só rodam Node local; nenhum faz chamada de rede nessas revisões.
 
 ## Documentação
 
@@ -105,6 +105,9 @@ Reaplicação: `skills update` não mudou nada; `claude plugin marketplace add` 
 | Handoff desatualizado | Passou | Agente rejeitou o "DONE" falso, reproduziu 5/7, corrigiu, 7/7, handoff atualizado com evidência real |
 | Revisão só leitura | Passou | Hashes da fixture iguais antes/depois; relatório privado aponta acesso cross-tenant com exemplo concreto |
 | Reaplicação, conflito de recursos, bloqueio parcial, pausa/retomada | Não rodados | Precisam de interação observável do host; reaplicação teve só checagem estática acima |
+
+- Descoberta em contexto limpo (subagente Haiku, só leitura): respondeu certo as 5 perguntas (comando `pnpm check`, skill antes de migration, local do handoff, plugins em `.claude/settings.json`, proibição do service role em componentes com a regra que a aplica), citando os arquivos. Passou.
+- Revisão independente do diff (subagente Opus, só leitura, `1ffcaeb..f61a932` sem as skills de terceiros): 1 média (plugins de terceiros sem commit fixo → revisões registradas acima) e 5 baixas (exceção de `console` larga demais → agora só `console.error`; título duplicado; caminhos do toolkit sem aviso; comentário de uso do self-check; "full" do Ponytail é o padrão do plugin), todas corrigidas. Limite aceito: a fronteira de dados do lint é por especificador exato.
 
 Nenhuma falha observada justificou comparação de candidato (método Harness2): instruções mantidas.
 

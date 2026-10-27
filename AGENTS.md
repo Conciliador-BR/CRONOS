@@ -52,7 +52,7 @@ CRM interno (pt-BR) que une missões estilo Trello, agenda, documentação de AP
 
 ## Ferramentas (detalhes e estado em `docs/setup.md`)
 
-- Plugins do projeto (`.claude/settings.json`): Superpowers (processo proporcional ao escopo), Ponytail `full` (menor mudança completa), Caveman (conversa concisa em português; código, docs e commits em texto normal), Context7 (docs atuais: resolva a biblioteca e consulte um conceito por vez; nunca envie segredos ou código privado; sem Context7, use `node_modules/next/dist/docs` e fontes oficiais).
+- Plugins do projeto (`.claude/settings.json`): Superpowers (processo proporcional ao escopo), Ponytail (padrão `full`) (menor mudança completa), Caveman (conversa concisa em português; código, docs e commits em texto normal), Context7 (docs atuais: resolva a biblioteca e consulte um conceito por vez; nunca envie segredos ou código privado; sem Context7, use `node_modules/next/dist/docs` e fontes oficiais).
 - RTK: com hook nativo ativo, use comandos normais (sem duplo prefixo); `rtk proxy <cmd>` para saída completa.
 - Graphify: `graphify-out/graph.json` local (só código, sem LLM). Confirme no código o que o grafo sugerir; registre se estiver desatualizado.
 - Modelos: preserve o cliente, o modelo principal e a autenticação. Subagentes usam o modelo mais leve capaz de cumprir os critérios (busca e inventário leves; segurança, RLS, migrations e revisão crítica com mais capacidade).
