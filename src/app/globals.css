@@ -79,6 +79,22 @@ body {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/*
+ * Lista aberta do <select> nativo: no Windows o Chrome/Edge desenha o fundo das opções em branco
+ * e herda a cor clara do texto, e as opções ficam invisíveis. Cores explícitas resolvem.
+ */
+select {
+  color-scheme: dark;
+}
+select option,
+select optgroup {
+  background-color: var(--surface-2);
+  color: var(--fg);
+}
+select option:disabled {
+  color: var(--muted);
+}
+
 ::selection {
   background: color-mix(in srgb, var(--primary) 45%, transparent);
   color: var(--fg);

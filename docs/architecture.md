@@ -95,6 +95,7 @@ Papéis (`app_role`): `admin`, `gestor`, `funcionario`.
 | Operacional · Documentações | `acquirers`, `acquirer_documents`, `acquirer_notes` | Membros leem, anexam e escrevem notas; cards de adquirente só gestor |
 | Operacional · Cursos | `courses`, `course_modules`, `lessons`, `lesson_progress` | Membros veem cursos publicados; gestor gerencia; progresso é de cada um |
 | Comercial / Marketing | `leads`, `lead_stage_history`, view `seller_performance` | Todos leem (ranking/insights); cria membro; altera dono, criador ou gestor; exclui gestor. Histórico de etapa preenchido por trigger |
+| Comercial (etapas) | `pipeline_stage_labels` (uma linha por `pipeline_stage`: `label` 1–40, `updated_by`) | Membros leem; admin/gestor renomeiam (só `update`; ninguém insere nem apaga). A etapa (enum) continua a chave; só o nome exibido muda |
 
 Enums: `pipeline_stage` (lead_recebido → diagnostico_feito → reuniao_marcada → follow_up → cliente_fechado | cliente_perdido), `lead_source` (marketing, venda, indicacao, outro), `lead_temperature` (quente, frio), `deal_type` (consultoria_avancada, somente_sistema), `video_source` (upload, drive, youtube).
 

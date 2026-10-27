@@ -1176,6 +1176,42 @@ export type Database = {
           },
         ]
       }
+      pipeline_stage_labels: {
+        Row: {
+          label: string
+          stage: Database["public"]["Enums"]["pipeline_stage"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          label: string
+          stage: Database["public"]["Enums"]["pipeline_stage"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          label?: string
+          stage?: Database["public"]["Enums"]["pipeline_stage"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stage_labels_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stage_labels_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "seller_performance"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean

@@ -38,12 +38,13 @@ async function getDestinations(): Promise<BoardDestination[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("boards")
-    .select("id, name, position, board_lists(id, name, position)")
+    .select("id, name, background, position, board_lists(id, name, position)")
     .order("position")
     .order("position", { referencedTable: "board_lists" });
   return (data ?? []).map((row) => ({
     id: row.id,
     name: row.name,
+    background: row.background,
     lists: row.board_lists.map((list) => ({ id: list.id, name: list.name })),
   }));
 }

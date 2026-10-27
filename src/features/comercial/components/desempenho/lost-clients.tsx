@@ -2,23 +2,32 @@ import Link from "next/link";
 import { UserX } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SOURCE_LABELS } from "../../constants";
+import { SOURCE_LABELS, STAGE_LABELS } from "../../constants";
 import { formatDate } from "../../lib/format";
 import type { LostDeal } from "../../lib/lost";
 
 /** Clientes perdidos no mês, do mais recente ao mais antigo, com link para o lead no CRM. */
-export function LostClients({ lost, monthLabel }: { lost: LostDeal[]; monthLabel: string }) {
+export function LostClients({
+  lost,
+  monthLabel,
+  lostStageLabel = STAGE_LABELS.cliente_perdido,
+}: {
+  lost: LostDeal[];
+  monthLabel: string;
+  /** Nome atual da etapa "Cliente perdido" (pode ter sido renomeada). */
+  lostStageLabel?: string;
+}) {
   return (
     <Card>
       <CardHeader>
         <CardTitle as="h2">Clientes perdidos</CardTitle>
         <CardDescription>
-          Leads movidos para “Cliente perdido” em {monthLabel}, com o motivo informado.
+          Leads movidos para “{lostStageLabel}” em {monthLabel}, com o motivo informado.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {lost.length === 0 ? (
-          <EmptyState icon={UserX} title="Nenhum cliente perdido no mês" description="Leads movidos para “Cliente perdido” no CRM aparecem aqui." />
+          <EmptyState icon={UserX} title="Nenhum cliente perdido no mês" description={`Leads movidos para “${lostStageLabel}” no CRM aparecem aqui.`} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[40rem] text-left text-sm">

@@ -1,6 +1,6 @@
 import type { Announcements, ScreenReaderInstructions } from "@dnd-kit/core";
-import { STAGE_LABELS } from "../../constants";
 import { findStage, type Columns } from "../../lib/pipeline";
+import type { StageLabels } from "../../lib/stage-labels";
 
 export const screenReaderInstructions: ScreenReaderInstructions = {
   draggable:
@@ -9,7 +9,7 @@ export const screenReaderInstructions: ScreenReaderInstructions = {
 };
 
 /** Anúncios em português para leitores de tela. `getColumns` lê o estado mais recente. */
-export function createAnnouncements(getColumns: () => Columns): Announcements {
+export function createAnnouncements(getColumns: () => Columns, labels: StageLabels): Announcements {
   function nameOf(id: string | number) {
     const columns = getColumns();
     const stage = findStage(columns, String(id));
@@ -22,7 +22,7 @@ export function createAnnouncements(getColumns: () => Columns): Announcements {
     if (!stage) return null;
     const list = columns[stage];
     const index = list.findIndex((lead) => lead.id === String(id));
-    return { column: STAGE_LABELS[stage], position: index + 1, total: list.length };
+    return { column: labels[stage], position: index + 1, total: list.length };
   }
 
   function describe(activeId: string | number) {

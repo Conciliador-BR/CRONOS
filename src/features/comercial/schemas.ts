@@ -2,6 +2,7 @@ import { z } from "zod";
 import { parseBrlToCents } from "@/lib/format/money";
 import { DEAL_TYPES, LEAD_SOURCES, LEAD_TEMPERATURES, PIPELINE_STAGES } from "./constants";
 import { isMonthKey, type MonthKey } from "./lib/months";
+import { STAGE_LABEL_MAX } from "./lib/stage-labels";
 
 /** Teto de valor aceito (R$ 1 bilhão) para evitar digitação absurda. */
 const MAX_CENTS = 100_000_000_000;
@@ -96,3 +97,14 @@ export const salesGoalSchema = z.object({
   goal: moneyText({ allowZero: true }),
 });
 export type SalesGoalInput = z.input<typeof salesGoalSchema>;
+
+/** Novo nome de uma etapa do pipeline (a etapa continua a mesma; só o nome exibido muda). */
+export const renameStageSchema = z.object({
+  stage: z.enum(PIPELINE_STAGES, "Etapa inválida."),
+  label: z
+    .string("Informe o nome da etapa.")
+    .trim()
+    .min(1, "Informe o nome da etapa.")
+    .max(STAGE_LABEL_MAX, `Use até ${STAGE_LABEL_MAX} caracteres.`),
+});
+export type RenameStageInput = z.input<typeof renameStageSchema>;

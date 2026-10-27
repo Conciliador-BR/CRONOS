@@ -44,7 +44,12 @@ export type CardAttachment = {
 };
 
 /** Quadros e listas para "Mover" o cartão. */
-export type BoardDestination = { id: string; name: string; lists: { id: string; name: string }[] };
+export type BoardDestination = {
+  id: string;
+  name: string;
+  background: string;
+  lists: { id: string; name: string }[];
+};
 
 export type BoardData = {
   board: { id: string; name: string; background: string };

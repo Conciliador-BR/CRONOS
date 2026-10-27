@@ -73,6 +73,7 @@ Importe do arquivo (`@/components/ui/button`) ou do barrel (`@/components/ui`). 
 3. Botão de envio com `loading={pending}` e texto no gerúndio ("Salvando…").
 4. Preserve o que foi digitado após erro (`defaultValue` + `key`). Nunca devolva senhas.
 5. Validação no servidor é a fonte da verdade; atributos HTML (`required`, `minLength`) são apenas ajuda.
+6. `<select>` nativo: as opções têm fundo `surface-2` e texto `fg` definidos em `globals.css`. Sem isso, Chrome/Edge no Windows mostram a lista aberta em branco.
 
 ### Modais e gavetas
 - Modal para decisões curtas e formulários pequenos (ex.: "Cliente fechado: tipo e valor"). Drawer para navegação secundária e detalhes longos.
@@ -91,6 +92,7 @@ Importe do arquivo (`@/components/ui/button`) ou do barrel (`@/components/ui`). 
 - Bolinha de concluir à esquerda do título: aparece ao passar o mouse ou focar o cartão (sempre em telas de toque) e fica verde com check quando concluída; o título fica `muted` e riscado.
 - Menu "…" no canto (Mudar de quadro / lista, Concluir, Arquivar), navegável por setas.
 - A superfície de arrastar/abrir fica atrás do visual; a bolinha e o menu são irmãos dela, nunca botões dentro de botão.
+- No quadro, um botão flutuante "Mudar de quadro" fica embaixo, no centro (como no Trello), e abre a lista de quadros para trocar de quadro. As listas têm folga inferior para o botão não cobrir cartões.
 
 ### Mapa de Empresas (`/empresas`)
 - **MapLibre GL** sobre o estilo vetorial escuro **CARTO Dark Matter** (crédito "© OpenStreetMap contributors © CARTO" no controle de atribuição, que fica sempre visível). É a única exceção à regra de "sem imagens externas". Se a CARTO não responder, o mapa usa um estilo mínimo (fundo `bg` + território em `surface`) e avisa "Mapa de ruas indisponível agora".
