@@ -1463,6 +1463,10 @@ export type Database = {
     }
     Functions: {
       cronos_needs_setup: { Args: never; Returns: boolean }
+      delete_pipeline_stage: {
+        Args: { p_move_to?: string; p_stage_id: string }
+        Returns: number
+      }
       has_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean

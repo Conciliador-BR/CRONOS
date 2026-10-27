@@ -106,17 +106,12 @@ export async function deleteStage(input: DeleteStageInput): Promise<ActionResult
     return { ok: false, error: plan.error, fieldErrors: plan.field ? { [plan.field]: [plan.error] } : undefined };
   }
 
-  if (plan.moveLeadsTo) {
-    const { error: moveError } = await supabase.from("leads").update({ stage_id: plan.moveLeadsTo }).eq("stage_id", id);
-    if (moveError) return stageFailure("delete-stage-move-leads", moveError);
-  }
-
-  const { data, error } = await supabase.from("pipeline_stages").delete().eq("id", id).select("id");
+  // Move os leads e apaga a coluna numa única transação (função no banco).
+  const { error } = await supabase.rpc("delete_pipeline_stage", { p_stage_id: id, p_move_to: plan.moveLeadsTo ?? undefined });
   if (error) {
     revalidateComercial();
-    return stageFailure("delete-stage", error);
+    return error.code === "P0002" ? { ok: false, error: STALE } : stageFailure("delete-stage", error);
   }
-  if (!data?.length) return { ok: false, error: STALE };
 
   revalidateComercial();
   return { ok: true };
