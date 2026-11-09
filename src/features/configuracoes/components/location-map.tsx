@@ -50,7 +50,7 @@ export function LocationMap({ point, fallbackCenter, fallbackZoom, focusKey, onP
       const [mod, base] = await Promise.all([import("maplibre-gl"), loadBaseStyle()]);
       const container = containerRef.current;
       if (cancelled || !container) return;
-      const ml = (mod.default ?? mod) as typeof mod.default;
+      const ml = mod;
       const start = latest.current.point;
       map = new ml.Map({
         container,

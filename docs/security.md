@@ -329,3 +329,22 @@ Revisão do commit `af4dd9c`. Nenhum achado crítico ou alto.
 | S4-03 | Baixa | Excluir etapa movia os leads e apagava a coluna em duas chamadas | Corrigido: função `delete_pipeline_stage` (invoker, exige gestor) faz tudo numa transação |
 
 Conferido sem achado: ações de etapa só para admin/gestor (ação + RLS); tipo da coluna lido do banco ao fechar/perder; `sync_lead_stage` impede pular as regras de fechado/perdido mesmo via PostgREST; preferências só da própria linha; caminhos de arquivo gerados no servidor; `cssImageUrl` só aceita `https://` e escapa aspas.
+
+## Varredura 2026-11-09 — projeto inteiro
+
+Três revisões só de leitura em paralelo (banco/RLS/Storage, autenticação/Server Actions, IA/uploads/web) e `pnpm audit`. Nenhum achado crítico ou alto confirmado. Correções na migration `20261109120000_security_scan_hardening.sql` e no código.
+
+| ID | Severidade | Achado | Status |
+| --- | --- | --- | --- |
+| V-01 | Média | `acquirer-docs`, `acquirer_documents` e o delete de `acquirer_progress_files` eram `is_member()` para tudo: qualquer membro sobrescrevia (upsert/move) ou apagava pela API o arquivo de outra pessoa, sem rastro | Corrigido: sem UPDATE no bucket; apagar só quem enviou (`owner_id`/`uploaded_by`) ou gestor. As ações avisam quando a RLS barra a exclusão |
+| V-02 | Alta se a confirmação de e-mail estiver desligada | A linha em `private.bootstrap_admins` nunca saía; quem se cadastrasse com aquele e-mail depois (conta do dono apagada, ou confirmação desligada) virava admin | Corrigido: `promote_bootstrap_admin` consome a linha ao promover |
+| V-03 | Baixa | Um admin rebaixava, desativava ou trocava a senha de outro admin | Corrigido: `guard_profile_update` barra papel/acesso de outro admin; `employee-actions` barra também a senha. Mudar outro admin só pelo painel/SQL |
+| V-04 | Média | Login sem limite de tentativas no app; o limite do Supabase vê o IP do servidor | Corrigido em parte: 5 tentativas por e-mail e 20 por IP a cada 15 min (`src/lib/rate-limit.ts`, memória por instância). Para algo compartilhado, ligar CAPTCHA (Turnstile) no Supabase Auth |
+| V-05 | Média | `pnpm dev` escutava em `0.0.0.0` com `/_next/mcp` aberto e `allowedDevOrigins` com faixas privadas inteiras | Corrigido: `pnpm dev` em `127.0.0.1`; `pnpm dev:lan` opcional; `allowedDevOrigins` só com os IPs desta máquina |
+| V-06 | Baixa | `bodySizeLimit` de 25 MB em toda action, lido antes da checagem de sessão | Corrigido: 11 MB (maior upload por action: 10 MB) |
+| V-07 | Baixa | Cache de URLs assinadas reaproveitava entre usuários caminhos `users/<uid>/` (legíveis só pelo dono) | Corrigido: pastas pessoais não entram no cache |
+| V-08 | Baixa | Faltavam `poweredByHeader: false`, HSTS e diretivas `object-src`/`base-uri`/`form-action` | Corrigido em `next.config.ts`. CSP de scripts com nonce fica para depois (força renderização dinâmica) |
+| V-09 | Crítica no pacote, baixa aqui | `maplibre-gl` ≤ 6.4.0: XSS em `DOM.sanitize` (GHSA-jrc7-96c5-q579). O app não usa `Popup.setHTML` | Corrigido: `maplibre-gl` 6.17 |
+| V-10 | Baixa | `companies_clear_branch_number` e `acquirer_company_progress_touch` sem `revoke execute` | Corrigido |
+
+Conferido no painel (pendente com o dono): cadastro público desligado ("Allow new users to sign up"), confirmação de e-mail ligada.

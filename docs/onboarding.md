@@ -15,7 +15,7 @@ pnpm dev                     # http://localhost:3000
 
 ### Abrir em outro aparelho da mesma rede
 
-`pnpm dev` (ou `npm run dev`) imprime antes do Next os endereços da rede local, como `http://192.168.0.15:3000`. Quem estiver no mesmo Wi-Fi abre esse endereço. O `next.config.ts` libera só faixas privadas (`192.168.*.*`, `10.*.*.*`, `172.16-31.*.*`) em `allowedDevOrigins`; isso vale apenas para o `next dev`. O "Network" que o próprio Next mostra pode ser um adaptador virtual; use a lista do CRONOS. Na primeira vez, o Windows pergunta se o Node.js pode usar a rede: permita em **redes privadas** (não marque redes públicas).
+`pnpm dev` escuta só em `127.0.0.1` (esta máquina). Para abrir em outro aparelho, use `pnpm dev:lan`: ele imprime os endereços da rede local, como `http://192.168.0.15:3000`, e quem estiver no mesmo Wi-Fi abre esse endereço. Use só em rede confiável: o servidor de desenvolvimento expõe logs, rotas e erros (inclusive em `/_next/mcp`) e usa o banco de produção. O `next.config.ts` libera em `allowedDevOrigins` só os IPs privados desta máquina; isso vale apenas para o `next dev`. O "Network" que o próprio Next mostra pode ser um adaptador virtual; use a lista do CRONOS. Na primeira vez, o Windows pergunta se o Node.js pode usar a rede: permita em **redes privadas** (não marque redes públicas).
 
 Variáveis:
 

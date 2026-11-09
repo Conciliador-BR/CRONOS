@@ -69,8 +69,7 @@ export function CompanyMap(props: CompanyMapProps) {
       const [mod, base] = await Promise.all([import("maplibre-gl"), loadBaseStyle()]);
       const container = containerRef.current;
       if (cancelled || !container) return;
-      // Pacote UMD: o bundler expõe o objeto em `default` (com fallback para o namespace).
-      const ml = (mod.default ?? mod) as typeof mod.default;
+      const ml = mod;
       const initialUf = latest.current.initialUf;
       map = new ml.Map({
         container,

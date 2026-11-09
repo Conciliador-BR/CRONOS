@@ -11,7 +11,7 @@ import { lookupCnpj } from "@/features/configuracoes/lookup-actions";
 import { createBoard, createList } from "@/features/operacional/missoes/board-actions";
 import { createCard } from "@/features/operacional/missoes/card-actions";
 import { UNAVAILABLE, interpret, transcribe } from "./gemini";
-import { overLimit } from "./rate-limit";
+import { overLimit } from "@/lib/rate-limit";
 import { buildProposals, companyFormData } from "./proposals";
 import { companyExists, findBoardList, getAgentBoards } from "./queries";
 import { MAX_AUDIO_BYTES, MAX_TEXT, audioType, executeInputSchema, type ExecuteInput } from "./schemas";

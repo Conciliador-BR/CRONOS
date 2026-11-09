@@ -11,4 +11,12 @@ describe("overLimit", () => {
     expect(overLimit("u2", t + 10)).toBe(false);
     expect(overLimit("u1", t + 70_000)).toBe(false);
   });
+
+  it("aceita limite e janela próprios (login: 5 em 15 min)", () => {
+    const t = 2_000_000;
+    const win = 15 * 60_000;
+    for (let i = 0; i < 5; i++) expect(overLimit("login:a@b.c", t + i, 5, win)).toBe(false);
+    expect(overLimit("login:a@b.c", t + 10, 5, win)).toBe(true);
+    expect(overLimit("login:a@b.c", t + win + 10, 5, win)).toBe(false);
+  });
 });

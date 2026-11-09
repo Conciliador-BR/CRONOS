@@ -149,8 +149,9 @@ export async function deleteProgressFile(fileId: unknown): Promise<ActionResult>
   const supabase = await createClient();
   const { data: file } = await supabase.from("acquirer_progress_files").select("storage_path").eq("id", parsed.data).maybeSingle();
   if (!file) return { ok: false, error: "Anexo não encontrado." };
-  const { error } = await supabase.from("acquirer_progress_files").delete().eq("id", parsed.data);
+  const { data: deleted, error } = await supabase.from("acquirer_progress_files").delete().eq("id", parsed.data).select("id");
   if (error) return failure("documentacoes.deleteProgressFile", error);
+  if (!deleted?.length) return { ok: false, error: "Só quem enviou o anexo ou um gestor pode excluí-lo." };
   const { error: storageError } = await supabase.storage.from(BUCKET).remove([file.storage_path]);
   if (storageError) failure("documentacoes.deleteProgressFile.storage", storageError);
   revalidatePath(PATH);

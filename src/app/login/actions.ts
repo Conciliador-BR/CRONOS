@@ -1,9 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { overLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "./safe-next";
+
+const LOGIN_WINDOW_MS = 15 * 60_000;
 
 const schema = z.object({
   email: z.email({ error: "Informe um e-mail válido." }),
@@ -25,6 +29,16 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors, email: raw.email };
+  }
+
+  // O limite do Supabase Auth vê o IP do servidor, não o do atacante: limita aqui por e-mail e por IP.
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "?";
+  const now = Date.now();
+  if (
+    overLimit(`login:ip:${ip}`, now, 20, LOGIN_WINDOW_MS) ||
+    overLimit(`login:email:${parsed.data.email.toLowerCase()}`, now, 5, LOGIN_WINDOW_MS)
+  ) {
+    return { formError: "Muitas tentativas. Aguarde 15 minutos e tente de novo.", email: raw.email };
   }
 
   const supabase = await createClient();

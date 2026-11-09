@@ -84,8 +84,9 @@ export async function deleteDocument(id: unknown): Promise<ActionResult> {
     .eq("id", parsed.data)
     .maybeSingle();
   if (!doc) return { ok: false, error: "Documento não encontrado." };
-  const { error } = await supabase.from("acquirer_documents").delete().eq("id", parsed.data);
+  const { data: deleted, error } = await supabase.from("acquirer_documents").delete().eq("id", parsed.data).select("id");
   if (error) return failure("documentacoes.deleteDocument", error);
+  if (!deleted?.length) return { ok: false, error: "Só quem enviou o documento ou um gestor pode excluí-lo." };
   const { error: storageError } = await supabase.storage.from(BUCKET).remove([doc.storage_path]);
   if (storageError) failure("documentacoes.deleteDocument.storage", storageError);
   revalidatePath(detailPath(doc.acquirer_id));

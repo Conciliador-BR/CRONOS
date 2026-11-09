@@ -26,6 +26,15 @@ const invalid = (fieldErrors: Record<string, string[]>): ActionResult => ({
   fieldErrors,
 });
 
+const OTHER_ADMIN = "O papel, o acesso e a senha de outro administrador não podem ser alterados por aqui.";
+
+/** Protege contra um admin comprometido tomar a conta de outro (a RLS barra papel e acesso também). */
+async function isOtherAdmin(supabase: Awaited<ReturnType<typeof createClient>>, profileId: string, meId: string) {
+  if (profileId === meId) return false;
+  const { data } = await supabase.from("profiles").select("role").eq("id", profileId).maybeSingle();
+  return data?.role === "admin";
+}
+
 function warningFor(failed: string[]) {
   return failed.length ? `Não foi possível salvar: ${failed.join(" e ")}. Tente de novo pela edição.` : undefined;
 }
@@ -107,6 +116,9 @@ export async function updateEmployee(profileId: string, formData: FormData): Pro
   }
 
   const supabase = await createClient();
+  if (input.role !== "admin" && (await isOtherAdmin(supabase, profileId, me.id))) {
+    return invalid({ role: [OTHER_ADMIN] });
+  }
   const { data, error } = await supabase
     .from("profiles")
     .update({
@@ -138,6 +150,7 @@ export async function setEmployeeActive(profileId: string, active: boolean): Pro
   if (!z.uuid().safeParse(profileId).success) return { ok: false, error: "Funcionário inválido." };
   if (profileId === me.id) return { ok: false, error: "Você não pode desativar o seu próprio acesso." };
   const supabase = await createClient();
+  if (await isOtherAdmin(supabase, profileId, me.id)) return { ok: false, error: OTHER_ADMIN };
   const { data, error } = await supabase
     .from("profiles")
     .update({ active: Boolean(active) })
@@ -154,9 +167,10 @@ export async function setEmployeeActive(profileId: string, active: boolean): Pro
 
 /** Admin define uma nova senha (service role). */
 export async function resetEmployeePassword(profileId: string, formData: FormData): Promise<ActionResult> {
-  await requireRole(["admin"]);
+  const me = await requireRole(["admin"]);
   if (!hasServiceRoleKey()) return { ok: false, error: NO_KEY };
   if (!z.uuid().safeParse(profileId).success) return { ok: false, error: "Funcionário inválido." };
+  if (await isOtherAdmin(await createClient(), profileId, me.id)) return { ok: false, error: OTHER_ADMIN };
   const parsed = passwordField.safeParse(formData.get("password") ?? "");
   if (!parsed.success) return invalid({ password: parsed.error.issues.map((i) => i.message) });
   const { error } = await createAdminClient().auth.admin.updateUserById(profileId, { password: parsed.data });

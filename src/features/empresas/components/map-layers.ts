@@ -108,5 +108,5 @@ export function addCompanySource(map: MapLibreMap, data: CompanyCollection) {
 }
 
 export function setCompanyData(map: MapLibreMap, data: CompanyCollection) {
-  map.getSource<GeoJSONSource>(COMPANY_SOURCE)?.setData(data);
+  void map.getSource<GeoJSONSource>(COMPANY_SOURCE)?.setData(data);
 }

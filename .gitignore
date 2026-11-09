@@ -45,3 +45,6 @@ next-env.d.ts
 
 # graphify (grafo local, não versionado)
 /graphify-out/
+
+# cache do `supabase link` (CLI)
+/supabase/.temp

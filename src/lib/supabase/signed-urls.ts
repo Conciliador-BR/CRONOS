@@ -11,13 +11,15 @@ const REUSE_MS = (TTL_SECONDS * 1000) / 2;
 const MAX_ENTRIES = 5000;
 
 const cache = new Map<string, { url: string; until: number }>();
+const isPersonal = (path: string) => path.startsWith("users/");
 
 /**
  * URLs assinadas de exibição (imagens), estáveis entre requisições.
  * Por quê: URL nova a cada render tem token novo, então nem o navegador nem o otimizador do
  * next/image acertam o cache e baixam o original do Storage de novo (gasta a cota de egress).
- * Seguro reaproveitar entre usuários: os caminhos vêm de consultas já filtradas pela RLS e as
- * policies de leitura desses buckets são `is_member()`.
+ * Reaproveita entre usuários só caminhos de leitura `is_member()`. Pastas pessoais (`users/<uid>/`,
+ * ex.: papel de parede, legível só pelo dono) não entram no cache: outro membro que gravasse esse
+ * caminho num quadro receberia a URL assinada para o dono.
  * shortcut: cache em memória por instância do servidor; se rodar em várias instâncias, cada uma assina a sua.
  */
 export async function signDisplayUrls(supabase: Supabase, bucket: string, paths: string[]): Promise<Map<string, string>> {
@@ -25,7 +27,7 @@ export async function signDisplayUrls(supabase: Supabase, bucket: string, paths:
   const now = Date.now();
   const missing: string[] = [];
   for (const path of new Set(paths)) {
-    const hit = cache.get(`${bucket}/${path}`);
+    const hit = isPersonal(path) ? undefined : cache.get(`${bucket}/${path}`);
     if (hit && hit.until > now) urls.set(path, hit.url);
     else missing.push(path);
   }
@@ -37,7 +39,7 @@ export async function signDisplayUrls(supabase: Supabase, bucket: string, paths:
   for (const item of data ?? []) {
     if (!item.path || !item.signedUrl) continue;
     urls.set(item.path, item.signedUrl);
-    cache.set(`${bucket}/${item.path}`, { url: item.signedUrl, until: now + REUSE_MS });
+    if (!isPersonal(item.path)) cache.set(`${bucket}/${item.path}`, { url: item.signedUrl, until: now + REUSE_MS });
   }
   return urls;
 }
