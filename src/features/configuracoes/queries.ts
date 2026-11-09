@@ -2,6 +2,7 @@ import "server-only";
 import { requireRole } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import { signDisplayUrls } from "@/lib/supabase/signed-urls";
 import { marketLabel } from "@/features/empresas/map-utils";
 import { currentMonthStart } from "./form-utils";
 
@@ -250,12 +251,7 @@ export async function getEmployees(): Promise<{ month: string; employees: Employ
   if (error) fail("funcionários", error.code);
 
   const paths = (profiles.data ?? []).flatMap((p) => (p.avatar_path ? [p.avatar_path] : []));
-  const urls = new Map<string, string>();
-  if (paths.length) {
-    const { data: signed, error: signError } = await supabase.storage.from("avatars").createSignedUrls(paths, 3600);
-    if (signError) logger.warn({ code: signError.name }, "configuracoes: falha ao assinar fotos");
-    for (const s of signed ?? []) if (s.path && s.signedUrl) urls.set(s.path, s.signedUrl);
-  }
+  const urls = await signDisplayUrls(supabase, "avatars", paths);
   const goalByProfile = new Map((goals.data ?? []).map((g) => [g.profile_id, g.goal_cents]));
 
   return {

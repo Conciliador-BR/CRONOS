@@ -1,16 +1,13 @@
 import "server-only";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { signDisplayUrls } from "@/lib/supabase/signed-urls";
 import type { CourseCard, CourseDetail, CourseModule, Lesson } from "./types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 async function signCovers(supabase: Supabase, paths: string[]) {
-  const urls = new Map<string, string>();
-  if (paths.length === 0) return urls;
-  const { data } = await supabase.storage.from("course-covers").createSignedUrls(paths, 3600);
-  for (const item of data ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
-  return urls;
+  return signDisplayUrls(supabase, "course-covers", paths);
 }
 
 async function myCompletedIds(supabase: Supabase): Promise<Set<string>> {

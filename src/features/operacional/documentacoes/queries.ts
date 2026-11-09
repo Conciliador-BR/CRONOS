@@ -1,15 +1,12 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { signDisplayUrls } from "@/lib/supabase/signed-urls";
 import type { AcquirerDetail, AcquirerSummary } from "./types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 async function signLogos(supabase: Supabase, paths: string[]) {
-  const urls = new Map<string, string>();
-  if (paths.length === 0) return urls;
-  const { data } = await supabase.storage.from("acquirer-logos").createSignedUrls(paths, 3600);
-  for (const item of data ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
-  return urls;
+  return signDisplayUrls(supabase, "acquirer-logos", paths);
 }
 
 /** Cards de adquirentes em ordem, com logo assinada (1 h). */

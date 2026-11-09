@@ -2,6 +2,7 @@ import "server-only";
 import { blobMatches } from "@/lib/file-signature";
 import { logger } from "@/lib/logger";
 import type { createClient } from "@/lib/supabase/server";
+import { forgetDisplayUrl } from "@/lib/supabase/signed-urls";
 import { currentMonthStart } from "./form-utils";
 import { AVATAR_TYPES, MAX_AVATAR_BYTES } from "./limits";
 
@@ -30,6 +31,7 @@ export async function saveAvatar(supabase: Supabase, profileId: string, file: Fi
     logger.error({ code: error.name }, "configuracoes: falha ao enviar foto");
     return false;
   }
+  forgetDisplayUrl("avatars", path);
   const { error: updateError } = await supabase.from("profiles").update({ avatar_path: path }).eq("id", profileId);
   if (updateError) {
     logger.error({ code: updateError.code }, "configuracoes: falha ao gravar foto no perfil");

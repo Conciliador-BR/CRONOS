@@ -3,6 +3,7 @@ import { cache } from "react";
 import { isManager, requireMember } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import { signDisplayUrls } from "@/lib/supabase/signed-urls";
 import type { Database } from "@/lib/supabase/database.types";
 import { computeLeadSourceStats, type LeadSourceStats } from "./lib/lead-stats";
 import { sortStages, terminalLabels, toStageKind, type StageColumn, type TerminalLabels } from "./lib/stages";
@@ -15,7 +16,6 @@ type LeadRow = Database["public"]["Tables"]["leads"]["Row"];
 type QueryError = { message: string; code?: string } | null;
 
 const PAGE_SIZE = 1000;
-const AVATAR_URL_TTL = 60 * 60;
 
 /** Falha de leitura: registra sem dados pessoais e mostra o erro genérico da rota. */
 export function failQuery(scope: string, error: QueryError): never {
@@ -37,7 +37,7 @@ export async function fetchAllRows<T>(
   }
 }
 
-/** Funcionários ativos com time, comissão e foto (URL assinada de 1 h). Uma vez por requisição. */
+/** Funcionários ativos com time, comissão e foto (URL assinada). Uma vez por requisição. */
 export const getActiveMembers = cache(async (): Promise<PerformanceMember[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -48,12 +48,7 @@ export const getActiveMembers = cache(async (): Promise<PerformanceMember[]> => 
   if (error) failQuery("members", error);
 
   const paths = (data ?? []).map((p) => p.avatar_path).filter((p): p is string => Boolean(p));
-  const urls = new Map<string, string>();
-  if (paths.length > 0) {
-    const { data: signed, error: signError } = await supabase.storage.from("avatars").createSignedUrls(paths, AVATAR_URL_TTL);
-    if (signError) logger.warn({ scope: "avatars", message: signError.message }, "comercial: avatares sem URL assinada");
-    for (const item of signed ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
-  }
+  const urls = await signDisplayUrls(supabase, "avatars", paths);
 
   return (data ?? []).map((p) => ({
     id: p.id,

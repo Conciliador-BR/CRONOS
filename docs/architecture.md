@@ -105,6 +105,8 @@ Tipos TypeScript: `src/lib/supabase/database.types.ts`, gerado do banco. Regere 
 
 Todos os buckets são privados; download por URL assinada de curta duração, caminho gerado no servidor.
 
+Imagens exibidas (fundos, capas, logos, fotos, imagens de cartão) usam `signDisplayUrls` (`lib/supabase/signed-urls.ts`): URL de 24 h reaproveitada por 12 h em memória do servidor. URL estável deixa o navegador e o otimizador do `next/image` usarem o cache; URL nova a cada render fazia o otimizador baixar o original do Storage a cada visita e estourou a cota de egress do plano gratuito em nov/2026. Arquivo sobrescrito no mesmo caminho (foto do perfil) chama `forgetDisplayUrl`.
+
 | Bucket | Conteúdo | Limite | Acesso |
 |---|---|---|---|
 | `company-docs` | PDFs de empresas | 20 MB, só PDF | Gestor |

@@ -1,17 +1,14 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { signDisplayUrls } from "@/lib/supabase/signed-urls";
 import { getActiveMembers } from "../shared/members";
 import { WALLPAPERS_BUCKET, type BackgroundImage } from "./backgrounds";
 import type { BoardCard, BoardData, BoardDestination, BoardSummary } from "./types";
 
-/** URLs assinadas (1 h) do bucket de fundos em uma chamada. Falha vira "sem imagem" (fica a cor). */
+/** URLs assinadas (estáveis) do bucket de fundos em uma chamada. Falha vira "sem imagem" (fica a cor). */
 async function signWallpapers(paths: string[]): Promise<Map<string, string>> {
-  const urls = new Map<string, string>();
-  if (paths.length === 0) return urls;
-  const supabase = await createClient();
-  const { data } = await supabase.storage.from(WALLPAPERS_BUCKET).createSignedUrls(paths, 3600);
-  for (const item of data ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
-  return urls;
+  if (paths.length === 0) return new Map();
+  return signDisplayUrls(await createClient(), WALLPAPERS_BUCKET, paths);
 }
 
 function toImage(path: string | null, urls: Map<string, string>): BackgroundImage | null {
@@ -51,14 +48,10 @@ export async function getBoards(): Promise<BoardSummary[]> {
 
 export const CARD_IMAGES_BUCKET = "card-images";
 
-/** URLs assinadas (1 h) em uma única chamada ao Storage. Falha vira "sem imagem". */
+/** URLs assinadas (estáveis) em uma única chamada ao Storage. Falha vira "sem imagem". */
 export async function signCardImages(paths: string[]): Promise<Map<string, string>> {
-  const urls = new Map<string, string>();
-  if (paths.length === 0) return urls;
-  const supabase = await createClient();
-  const { data } = await supabase.storage.from(CARD_IMAGES_BUCKET).createSignedUrls(paths, 3600);
-  for (const item of data ?? []) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
-  return urls;
+  if (paths.length === 0) return new Map();
+  return signDisplayUrls(await createClient(), CARD_IMAGES_BUCKET, paths);
 }
 
 async function getDestinations(): Promise<BoardDestination[]> {
