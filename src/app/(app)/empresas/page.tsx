@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { z } from "zod";
-import { PageHeader } from "@/components/layout/page-header";
 import { Alert } from "@/components/ui/alert";
 import { toUf } from "@/features/empresas/brazil-states";
 import { CompanyDrawer } from "@/features/empresas/components/company-drawer";
@@ -27,10 +26,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
 
   return (
     <>
-      <PageHeader
-        title="Empresas"
-        description="Cada ponto é um mercado no local exato. Role para aproximar, clique num estado para entrar nele e num ponto para ver os dados."
-      />
+      <h1 className="sr-only">Empresas</h1>
       {missing ? (
         <Alert tone="warning" title="Empresa não encontrada" className="mb-4">
           O link pode estar desatualizado ou a empresa foi excluída.

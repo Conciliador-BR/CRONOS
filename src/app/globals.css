@@ -1,27 +1,28 @@
 @import "tailwindcss";
 
 /*
- * Identidade CRONOS: preto e azul. Tema escuro único.
+ * Identidade CRONOS: fundo neutro quase preto com tríade de destaque índigo + cyan + violeta. Tema escuro único.
  * Os NOMES dos tokens são contrato entre módulos; ajuste valores, não nomes.
- * Contrastes (WCAG): fg/bg 17:1, muted/bg 7:1, muted/surface-2 5.9:1,
- * primary-fg/primary 5.2:1, danger/bg 5.3:1. Ver docs/design.md.
+ * Contrastes (WCAG AA): fg/bg 16.8:1, muted/bg 7.3:1, muted/surface-2 6.2:1,
+ * muted/surface-3 5.4:1, primary-fg/primary 5.0:1, danger/bg 7.3:1, accent-2/bg 7.3:1. Ver docs/design.md.
  */
 :root {
-  --bg: #05070d;
-  --surface: #0b1020;
-  --surface-2: #111a33;
-  --surface-3: #18233f;
-  --border: #1e2a4a;
-  --fg: #e6ecff;
-  --muted: #8a97b8;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  --bg: #0a0a0f;
+  --surface: #13131b;
+  --surface-2: #1c1c28;
+  --surface-3: #272735;
+  --border: #303043;
+  --fg: #ececf5;
+  --muted: #9b9bb5;
+  --primary: #5b5ee8;
+  --primary-hover: #4f46e5;
   --primary-fg: #ffffff;
-  --accent: #38bdf8;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --ring: #60a5fa;
+  --accent: #22d3ee;
+  --accent-2: #a78bfa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --ring: #818cf8;
   color-scheme: dark;
 }
 
@@ -37,6 +38,7 @@
   --color-primary-hover: var(--primary-hover);
   --color-primary-fg: var(--primary-fg);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);

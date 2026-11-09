@@ -11,10 +11,13 @@ import type { ActionResult } from "../shared/result";
 import {
   boardBackgroundPath,
   isBoardBackgroundPath,
+  isListCoverPath,
+  listCoverPath,
   isUserWallpaperPath,
   userWallpaperPath,
   WALLPAPERS_BUCKET,
 } from "./backgrounds";
+import type { ListCoverImage } from "./types";
 
 const BOARDS_PATH = "/operacional/missoes";
 const boardPath = (id: string) => `${BOARDS_PATH}/${id}`;
@@ -143,5 +146,81 @@ export async function removeBoardBackground(boardId: unknown): Promise<ActionRes
     await removeQuietly(supabase, previous, "missoes.removeBoardBackground.storage");
   }
   revalidateBoard(board.id);
+  return { ok: true };
+}
+
+const listIdSchema = z.uuid({ error: "Lista inválida." });
+const LIST_NOT_FOUND = { ok: false, error: "Lista não encontrada." } as const;
+
+async function findList(supabase: Supabase, listId: string) {
+  const { data } = await supabase.from("board_lists").select("id, board_id, cover_path").eq("id", listId).maybeSingle();
+  return data;
+}
+
+/** Capa no topo da lista (qualquer membro). FormData: file. Devolve a imagem assinada para mostrar já. */
+export async function setListCover(listId: unknown, formData: FormData): Promise<ActionResult<{ cover: ListCoverImage }>> {
+  await requireMember();
+  const parsed = listIdSchema.safeParse(listId);
+  if (!parsed.success) return invalid(parsed.error);
+  const image = await readWallpaper(formData);
+  if (!image.ok) return { ok: false, error: image.error, fieldErrors: { file: [image.error] } };
+  const supabase = await createClient();
+  const list = await findList(supabase, parsed.data);
+  if (!list) return LIST_NOT_FOUND;
+
+  const type = image.file.type.toLowerCase();
+  const path = listCoverPath(list.board_id, crypto.randomUUID(), type);
+  const bucket = supabase.storage.from(WALLPAPERS_BUCKET);
+  const { error: uploadError } = await bucket.upload(path, image.bytes, { contentType: type, upsert: false });
+  if (uploadError) return failure("missoes.setListCover.upload", uploadError);
+  const { data: updated, error } = await supabase.from("board_lists").update({ cover_path: path, cover_position: 50 }).eq("id", list.id).select("id");
+  if (error || !updated?.length) {
+    await removeQuietly(supabase, path, "missoes.setListCover.rollback");
+    return error ? failure("missoes.setListCover", error) : LIST_NOT_FOUND;
+  }
+  if (list.cover_path && list.cover_path !== path && isListCoverPath(list.cover_path, list.board_id)) {
+    await removeQuietly(supabase, list.cover_path, "missoes.setListCover.previous");
+  }
+  const { data: signed } = await bucket.createSignedUrl(path, 3600);
+  revalidateBoard(list.board_id);
+  return { ok: true, cover: { path, url: signed?.signedUrl ?? "", position: 50 } };
+}
+
+export async function removeListCover(listId: unknown): Promise<ActionResult> {
+  await requireMember();
+  const parsed = listIdSchema.safeParse(listId);
+  if (!parsed.success) return invalid(parsed.error);
+  const supabase = await createClient();
+  const list = await findList(supabase, parsed.data);
+  if (!list) return LIST_NOT_FOUND;
+  if (!list.cover_path) return { ok: true };
+  const { error } = await supabase.from("board_lists").update({ cover_path: null }).eq("id", list.id);
+  if (error) return failure("missoes.removeListCover", error);
+  if (isListCoverPath(list.cover_path, list.board_id)) {
+    await removeQuietly(supabase, list.cover_path, "missoes.removeListCover.storage");
+  }
+  revalidateBoard(list.board_id);
+  return { ok: true };
+}
+
+const coverPositionSchema = z.object({
+  listId: listIdSchema,
+  position: z.int({ error: "Posição inválida." }).min(0, { error: "Posição inválida." }).max(100, { error: "Posição inválida." }),
+});
+
+/** Enquadramento vertical da capa (0 = topo da foto, 100 = base). */
+export async function setListCoverPosition(input: unknown): Promise<ActionResult> {
+  await requireMember();
+  const parsed = coverPositionSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+  const supabase = await createClient();
+  const { data: updated, error } = await supabase
+    .from("board_lists")
+    .update({ cover_position: parsed.data.position })
+    .eq("id", parsed.data.listId)
+    .select("board_id");
+  if (error) return failure("missoes.setListCoverPosition", error);
+  if (!updated?.length) return LIST_NOT_FOUND;
+  revalidateBoard(updated[0].board_id);
   return { ok: true };
 }

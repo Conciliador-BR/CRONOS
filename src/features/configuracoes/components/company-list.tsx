@@ -95,7 +95,7 @@ export function CompanyList({ companies }: { companies: CompanyListItem[] }) {
               <ul aria-label={`Filiais de ${marketLabel(company)}`} className="divide-y divide-border border-t border-border">
                 {branches.map((b) => (
                   <li key={b.id}>
-                    <Row company={b} nested badge={<Badge>Filial</Badge>} />
+                    <Row company={b} nested badge={<Badge>{b.branchNumber ? `Filial ${String(b.branchNumber).padStart(2, "0")}` : "Filial"}</Badge>} />
                   </li>
                 ))}
               </ul>

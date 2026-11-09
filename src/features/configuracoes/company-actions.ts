@@ -35,6 +35,7 @@ const companyRow = (input: CompanyInput, clientId: string | null) => ({
   cnae: input.cnae,
   cnae_description: input.cnaeDescription,
   parent_company_id: input.parentCompanyId,
+  branch_number: input.branchNumber,
   latitude: input.latitude,
   longitude: input.longitude,
   client_id: clientId,
@@ -110,6 +111,9 @@ async function removeClient(supabase: Supabase, id: string) {
 /** Erros do banco com mensagem amigável: CNPJ duplicado (23505) e regra matriz/filial (23514). */
 function dbConflict(code: string | undefined, input?: CompanyInput): ActionResult | null {
   if (code === "23505") return invalid({ cnpj: ["Já existe uma empresa com este CNPJ."] });
+  if (code === "23514" && input?.branchNumber) {
+    return invalid({ branchNumber: ["Número da filial inválido (2 a 9999)."] });
+  }
   if (code === "23514" && input?.parentCompanyId) {
     return invalid({ parentCompanyId: ["Só existe um nível: a matriz não pode ser filial, e empresa com filiais não vira filial."] });
   }

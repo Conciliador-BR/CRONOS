@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Logo } from "@/components/ui/logo";
+import { MagicDustBackground } from "@/components/ui/magic-dust-background";
 
 const pillars: { icon: LucideIcon; label: string }[] = [
   { icon: Kanban, label: "Tarefas em quadros" },
@@ -68,6 +69,7 @@ const board = [
 export default function LandingPage() {
   return (
     <div className="relative isolate flex flex-1 flex-col overflow-x-clip">
+      <MagicDustBackground />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] bg-[radial-gradient(55%_60%_at_50%_0%,color-mix(in_srgb,var(--primary)_28%,transparent),transparent)]"

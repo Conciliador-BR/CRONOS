@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { getMainNav, isActivePath, type AppRole } from "@/lib/nav";
+import { LogoMark } from "@/components/ui";
 import { useShell } from "./shell-context";
 import { focusById, focusOnMount, trapTabKey, useEscapeKey } from "./drawer-a11y";
 import { cn } from "@/lib/utils";
@@ -29,12 +30,7 @@ function Brand({ compact, onNavigate }: { compact: boolean; onNavigate?: () => v
       className="flex items-center gap-2 rounded-md px-2 py-1 font-semibold tracking-wide text-fg"
       aria-label="CRONOS, ir para o início"
     >
-      <span
-        aria-hidden
-        className="grid size-8 shrink-0 place-items-center rounded-md bg-primary text-sm font-bold text-primary-fg"
-      >
-        C
-      </span>
+      <LogoMark className="size-8" />
       {compact ? null : <span>CRONOS</span>}
     </Link>
   );

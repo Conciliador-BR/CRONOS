@@ -62,11 +62,15 @@ describe("caminhos", () => {
 });
 
 describe("matchesImageSignature", () => {
-  it("reconhece PNG, JPEG e WebP", () => {
+  it("reconhece PNG, JPEG, WebP, GIF, AVIF e BMP", () => {
     expect(matchesImageSignature(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), "image/png")).toBe(true);
     expect(matchesImageSignature(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]), "image/jpeg")).toBe(true);
     const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]);
     expect(matchesImageSignature(webp, "image/webp")).toBe(true);
+    expect(matchesImageSignature(new TextEncoder().encode("GIF89a"), "image/gif")).toBe(true);
+    const avif = new Uint8Array([0, 0, 0, 0x20, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66]);
+    expect(matchesImageSignature(avif, "image/avif")).toBe(true);
+    expect(matchesImageSignature(new Uint8Array([0x42, 0x4d, 0, 0]), "image/bmp")).toBe(true);
   });
   it("recusa conteúdo trocado e SVG com script", () => {
     expect(matchesImageSignature(new TextEncoder().encode("<html>"), "image/png")).toBe(false);
@@ -75,9 +79,12 @@ describe("matchesImageSignature", () => {
 });
 
 describe("fotos de cartão", () => {
-  it("aceita PNG, JPG e WebP até 10 MB", () => {
+  it("aceita PNG, JPG, WebP, GIF, AVIF e BMP até 10 MB", () => {
     expect(checkCardImage({ type: "image/png", size: 1024 })).toBeNull();
     expect(checkCardImage({ type: "IMAGE/JPEG", size: 10 * MB })).toBeNull();
+    expect(checkCardImage({ type: "image/gif", size: 1024 })).toBeNull();
+    expect(checkCardImage({ type: "image/avif", size: 1024 })).toBeNull();
+    expect(checkCardImage({ type: "image/bmp", size: 1024 })).toBeNull();
     expect(checkCardImage({ type: "image/webp", size: 10 * MB + 1 })).toMatch(/10 MB/);
     expect(checkCardImage({ type: "image/svg+xml", size: 10 })).toMatch(/formato/);
     expect(checkCardImage({ type: "image/png", size: 0 })).toMatch(/vazio/);
@@ -86,6 +93,9 @@ describe("fotos de cartão", () => {
     expect(imageExtension("image/jpeg")).toBe("jpg");
     expect(imageExtension("image/PNG")).toBe("png");
     expect(imageExtension("image/webp")).toBe("webp");
+    expect(imageExtension("image/gif")).toBe("gif");
+    expect(imageExtension("image/avif")).toBe("avif");
+    expect(imageExtension("image/bmp")).toBe("bmp");
     expect(imageExtension("text/html")).toBe("bin");
   });
 });

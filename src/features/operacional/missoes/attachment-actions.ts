@@ -56,14 +56,14 @@ export async function listCardAttachments(input: unknown): Promise<ActionResult<
 }
 
 /**
- * Envia uma foto (PNG, JPG ou WebP até 10 MB; tipo, tamanho e assinatura dos bytes conferidos).
+ * Envia uma foto (PNG, JPG, WebP, GIF, AVIF ou BMP até 10 MB; tipo, tamanho e assinatura dos bytes conferidos).
  * FormData: cardId, boardId, file. Caminho `<cardId>/<uuid>.<ext>`. A primeira foto vira capa.
  */
 export async function uploadCardAttachment(formData: FormData): Promise<ActionResult<{ id: string }>> {
   const profile = await requireMember();
   const parsed = cardRefSchema.safeParse({ cardId: formData.get("cardId"), boardId: formData.get("boardId") });
   if (!parsed.success) return invalid(parsed.error);
-  const image = await readImageFile(formData.get("file"), CARD_IMAGE_MIME_TYPES, MAX_CARD_IMAGE_BYTES, "PNG, JPG ou WebP");
+  const image = await readImageFile(formData.get("file"), CARD_IMAGE_MIME_TYPES, MAX_CARD_IMAGE_BYTES, "PNG, JPG, WebP, GIF, AVIF ou BMP");
   if (!image.ok) return { ok: false, error: image.error, fieldErrors: { file: [image.error] } };
   const { cardId, boardId } = parsed.data;
   const supabase = await createClient();

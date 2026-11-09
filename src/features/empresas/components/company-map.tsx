@@ -170,7 +170,7 @@ export function CompanyMap(props: CompanyMapProps) {
   }, [command, status, playCloud]);
 
   return (
-    <div className="em-map relative h-[420px] overflow-hidden rounded-xl border border-border bg-bg sm:h-[520px] lg:h-[600px]">
+    <div className="em-map relative overflow-hidden rounded-xl border border-border bg-bg">
       <div
         ref={containerRef}
         role="region"

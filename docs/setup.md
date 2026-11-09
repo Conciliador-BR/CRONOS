@@ -34,20 +34,20 @@ Estados: **validado** (rodou e foi conferido), **configurado** (arquivo/instala�
 | Superpowers 7.0.0 | Instalado (`claude-plugins-official`) | Projeto: `.claude/settings.json` | Validado: skills carregadas na sessão retomada (ver abaixo) |
 | Ponytail 5.3.2 (modo padrão `full`) | Instalado; opções de webhook/ledger deixadas vazias (sem serviço externo) | Projeto | Validado: hook ativou `full` na sessão retomada |
 | Caveman 4.0.1 | Instalado; hooks locais sem rede (conferido no código). Português conciso só na conversa | Projeto | Validado: hook ativou o modo na sessão retomada. Plugin avisa que não instala dependências pnpm próprias; hooks usam só Node |
-| Context7 | Plugin oficial (`context7@claude-plugins-official`, MCP remoto `mcp.context7.com`). Marketplace `upstash/context7` removido para não duplicar o servidor | Projeto | **Bloqueado aqui**: rede da nuvem nega o host (403). Validar na máquina com uma consulta real |
-| RTK | Não instalado: binário e hook são de máquina | Máquina | Pendente de autorização: `winget install rtk-ai.rtk` e `rtk init -g` (hook nativo no Windows desde v0.37.2) |
-| Graphify 0.9.96 (`graphifyy[sql]`) | Executado via `uvx` sem instalação global; `.graphifyignore` + `graphify-out/` no `.gitignore` | Projeto (saída local) | Validado: `extract . --code-only --no-cluster` → 1867 nós, 7109 arestas, 357 arquivos + 7 migrations; `explain requireRole` e `query` responderam. Sem extração semântica (precisa da integração nativa) |
-| Skills Vercel web (9 nomes do catálogo) | 4 existentes atualizadas + `vercel-react-view-transitions`, `vercel-optimize`, `deploy-to-vercel`, `vercel-cli-with-tokens` | Projeto `.claude/skills` | Validado instalação (`skills update` sem mudanças; frontmatter conferido). Descoberta em sessão nova não observada |
+| Context7 | Plugin oficial (`context7@claude-plugins-official`, MCP remoto `mcp.context7.com`). Marketplace `upstash/context7` removido para não duplicar o servidor | Projeto | Validado no Windows (2026-10-28): consulta real `resolve-library-id` respondeu `/vercel/next.js`. O índice vai só até a v16.2.9; para APIs da 16.4 a fonte é `node_modules/next/dist/docs`. Ferramentas MCP no cliente: só em sessão nova |
+| RTK 0.50.0 | Reutilizado: instalado pelo dono com hook nativo `rtk hook claude` no `settings.json` do usuário | Máquina | Validado: saídas condensadas e `rtk recall` observados nesta sessão, sem prefixo duplo |
+| Graphify 0.9.96 (`graphifyy[sql]`) | Executado via `uvx` sem instalação global; `.graphifyignore` + `graphify-out/` no `.gitignore` | Projeto (saída local) | Validado no Windows (2026-10-28): 2087 nós, 7804 arestas, incluindo as migrations; `explain requireRole` e `query` responderam. O `graphify` 0.9.72 global da máquina não tem o extra `sql` (ignora as migrations). Sem extração semântica (precisa da integração nativa) |
+| Skills Vercel web (9 nomes do catálogo) | 4 existentes atualizadas + `vercel-react-view-transitions`, `vercel-optimize`, `deploy-to-vercel`, `vercel-cli-with-tokens` | Projeto `.claude/skills` | Validado: descobertas pelo Claude Code no Windows (2026-10-28). Conteúdo igual ao upstream em 2026-10-28 (só diferia o fim de linha) |
 | `vercel-react-native-skills` | Inaplicável: sem mobile | — | — |
 | `find-skills` | Reutilizado | Projeto | Atualizado |
-| `next-dev-loop` | Instalado (Next 16.4.3 + Turbopack atende ao piso 16.3) | Projeto | Configurado. Exige `agent-browser` ≥ 0.31.1 no PATH (pendente na máquina) |
+| `next-dev-loop` | Instalado (Next 16.4.3 + Turbopack atende ao piso 16.3) | Projeto | Validado no Windows (2026-10-28): agent-browser 0.40.0 abriu `/login` no `next dev`, com console sem erros; `/_next/mcp` listou 8 ferramentas e `get_errors` voltou vazio |
 | `next-bundle-optimizer` | Instalado; auditoria só com pedido | Projeto | Configurado; `next analyze` não executado |
 | `supabase-postgres-best-practices` | Reutilizado e atualizado | Projeto | Validado instalação |
 | `differential-review` (Trail of Bits) | Instalado como skill local (não plugin, para não duplicar) | Projeto | Configurado; prompt de segurança segue como entrada de revisão de base |
 | `gh-fix-ci` | Inaplicável: o repositório não tem GitHub Actions e o fluxo é de Codex | — | Rever se criarem CI |
 | shadcn | Inaplicável: UI kit próprio em `src/components/ui` | — | — |
 | Sentry MCP | Inaplicável: sem serviço escolhido | — | Rever se adotarem Sentry |
-| agent-browser / Chrome DevTools MCP | Não instalados (globais). Nesta nuvem, Playwright + Chromium cobrem o navegador | Máquina | Pendente: `npm i -g agent-browser` e `agent-browser install` para o `next-dev-loop` |
+| agent-browser / Chrome DevTools MCP | agent-browser 0.40.0 + Chrome for Testing 156 instalados com autorização em `%APPDATA%\npm`. Chrome DevTools MCP não instalado: agent-browser + `/_next/mcp` já cobrem automação, console e erros; perfil de performance só sob demanda | Máquina | Validado (linha do `next-dev-loop`) |
 | Anthropic skills (document-skills, skill-creator) | Inaplicável: sem necessidade de gerar Office/PDF no fluxo; o host já oferece criação de skills | — | Rever se surgir exportação de relatórios |
 | aia-harness e outros plugins oficiais | Inaplicável: o harness do projeto já cobre onboarding; evitar duplicar instruções | — | — |
 | Obsidian / memória externa | Inaplicável: sem necessidade concreta nem destino autorizado | — | — |
@@ -113,17 +113,43 @@ Reaplicação: `skills update` não mudou nada; `claude plugin marketplace add` 
 
 Nenhuma falha observada justificou comparação de candidato (método Harness2): instruções mantidas.
 
+## Rodada na máquina (Windows, 2026-10-28)
+
+Nova execução do prompt 12 no VS Code (Claude Code 2.1.312, Windows 11, Git Bash, Node 24.15, pnpm 10.28 via corepack), partindo de `ee9530f`. O toolkit continuava na revisão `790a895` (nenhum commit novo), então o catálogo e as decisões acima valem; esta rodada fechou as pendências de máquina. Backup recuperável: a configuração, o `package-lock.json` e o `settings.json` do usuário foram copiados para o scratchpad da sessão antes das mudanças. A mudança local do dono em `company-map.tsx` foi preservada.
+
+Observado no início: plugins declarados mas não instalados (`installed_plugins.json` vazio), pnpm fora do PATH, `package-lock.json` de um `npm install` acidental por cima da árvore do pnpm, prefixo global do npm (`C:\npm-global`) fora do PATH.
+
+Feito, com autorização do dono para o que é de máquina:
+
+- Plugins instalados com `claude plugin install --scope project` (comandos em `docs/onboarding.md`). Commits iguais aos revisados em 10-27 (Superpowers `bb92a77`, Ponytail `09c434a`, Caveman `9b68f7e`); Context7 `f8c5e7a` só declara o MCP HTTP. As skills de Ponytail e Caveman apareceram na própria sessão; Superpowers e as ferramentas do Context7 precisam de sessão nova. O `marketplace add` gravou marketplaces no `settings.json` do usuário, o que duplicava o projeto; o arquivo foi restaurado do backup.
+- pnpm: `corepack enable pnpm --install-directory "%APPDATA%\npm"` (o destino padrão exige administrador). `package-lock.json` movido para o backup e ignorado no `.gitignore`.
+- agent-browser 0.40.0 + Chrome for Testing 156; uv 0.13.6 (winget). O PATH novo do winget só vale em terminais abertos depois da instalação.
+- Incidente corrigido: `npx skills check` não só checou como atualizou, e trocou 11 cópias de `.claude/skills` por junctions absolutas para `.agents/skills`. Como o conteúdo era igual ao upstream (só mudava o fim de linha, com `core.autocrlf=true`), as cópias foram restauradas do Git e `.agents/` foi para o backup. A regra ficou em `docs/onboarding.md`, e o comando de reaplicação abaixo foi corrigido.
+
+| Check | Antes (`ee9530f` + mudança local) | Depois |
+|---|---|---|
+| `pnpm lint` / `typecheck` / `lint:rules` | ok / ok / ok | ok / ok / ok |
+| `pnpm lint:typed` | 0 erros, 37 avisos (35 s) | igual |
+| `pnpm test` | 38 arquivos / 244 testes | igual |
+| `pnpm build` | ok | ok |
+| `pnpm audit` (prod e completo) | 1 crítico (`maplibre-gl`) | igual |
+| `next start` (porta 3471) | — | `/` 200, `/login` 200, `/inicio` sem sessão 307 → `/login?next=%2Finicio`; processo encerrado |
+| `next dev` + agent-browser | — | Validado no servidor de dev do dono (porta 3000, só leitura, sem login) |
+| `pnpm check` pelo shim do PATH, no fim da rodada | — | Falha no lint: 17 erros `react-hooks` ("Cannot access refs during render") em `src/features/operacional/relatorios/`, trabalho de produto em andamento no mesmo checkout e fora deste setup. `typecheck` ok; `test` 40 arquivos / 262 testes |
+
+Observação fora do escopo: `scripts/dev-lan.mjs` anuncia a porta pela variável `PORT`; com `pnpm dev -p <porta>` ele ainda mostra 3000.
+
+Não rodado nesta rodada: avaliação comportamental do harness (instruções e fixture inalteradas desde 10-27; vale a evidência acima), login real e páginas autenticadas (exigiriam sessão no projeto Supabase em uso).
+
 ## Pendências e próxima entrega
 
 | Pendência | Causa | Próxima ação |
 |---|---|---|
 | Push e PR deste setup | O pedido proíbe publicar | Mateus autoriza o push da branch e a abertura do PR |
-| Validar plugins e skills em sessão nova | Plugins/skills só carregam em sessão nova | No VS Code: abrir o Claude Code no projeto, aceitar a confiança dos plugins, `/plugin` e `/skills` |
-| Context7 | Rede da nuvem nega `mcp.context7.com` | Na máquina, perguntar algo de Next 16 e ver a consulta ao Context7; ou liberar o domínio no ambiente de nuvem |
-| RTK, uv/Graphify, agent-browser na máquina | Instalações globais exigem autorização | Comandos em `docs/onboarding.md` |
+| Confirmar Superpowers e ferramentas do Context7 no cliente | Plugins instalados durante a sessão; parte só carrega em sessão nova | Abrir uma conversa nova no projeto, rodar `/plugin` e fazer uma pergunta de Next 16 para ver a chamada ao Context7 |
 | `maplibre-gl` ≤ 6.4.0 (GHSA-jrc7-96c5-q579, crítico) | Correção só na 6.x (major) | Proposta separada: atualizar para 6.x, testar os dois mapas. Risco atual baixo: o app não usa `Popup.setHTML`; o sanitizador só recebe atribuições do estilo base |
 | 37 `no-misused-promises` | Handlers async em atributos JSX | Ver plano em `docs/quality.md` |
 | Atualizações major disponíveis (ESLint 10, TypeScript 7, `@types/node` 26) | Incompatíveis sem migração | Avaliar em entrega própria; `@types/node` segue o Node 22 |
 | Hospedagem, CI, login real | Decisões do dono e rede | Herdadas da rodada anterior |
 
-Para repetir este setup preservando customizações: rodar de novo o prompt 12 com a revisão do toolkit registrada aqui, `npx skills@latest update --project --yes`, `claude plugin update <plugin> --scope project`, `uvx --from "graphifyy[sql]" graphify extract . --code-only --no-cluster` e `pnpm check`.
+Para repetir este setup preservando customizações: rodar de novo o prompt 12 com a revisão do toolkit registrada aqui; atualizar skills uma a uma por cópia (`npx skills@latest add <origem> --skill <nome> --agent claude-code --copy -y`, nunca `skills update`/`check` no Windows) e conferir o diff; `claude plugin update <plugin> --scope project` revisando os hooks da nova revisão; `uvx --from "graphifyy[sql]==0.9.96" graphify extract . --code-only --no-cluster`; e `pnpm check`.

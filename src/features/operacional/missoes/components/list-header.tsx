@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/modal";
 import { deleteList, renameList } from "../board-actions";
 import { removeList } from "../board-state";
 import { useBoard } from "./board-context";
+import { AddListCoverButton } from "./list-cover";
 
 type HandleProps = Omit<ComponentProps<"button">, "ref" | "type"> & {
   handleRef: (node: HTMLElement | null) => void;
@@ -92,6 +93,7 @@ export function ListHeader({ listId, handle }: { listId: string; handle: HandleP
       <span className="px-1 text-xs text-muted tabular-nums" aria-label={`${count} cartões`}>
         {count}
       </span>
+      {list.cover ? null : <AddListCoverButton listId={listId} listName={list.name} />}
       <Button variant="ghost" size="sm" className="size-8 px-0" aria-label={`Excluir lista ${list.name}`} onClick={() => setConfirming(true)}>
         <Trash2 aria-hidden />
       </Button>

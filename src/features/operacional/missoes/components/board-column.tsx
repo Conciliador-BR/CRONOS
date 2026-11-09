@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { AddCardForm } from "./add-card-form";
 import { useBoard } from "./board-context";
+import { ListCover } from "./list-cover";
 import { ListHeader } from "./list-header";
 import { SortableCard } from "./sortable-card";
 
@@ -35,6 +36,7 @@ export function BoardColumn({ listId }: { listId: string }) {
         isDragging && "opacity-40",
       )}
     >
+      <ListCover listId={listId} />
       <ListHeader listId={listId} handle={{ handleRef: setActivatorNodeRef, ...attributes, ...listeners }} />
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
         <ol

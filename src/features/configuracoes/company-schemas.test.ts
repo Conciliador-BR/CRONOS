@@ -41,6 +41,19 @@ describe("companySchema", () => {
     });
   });
 
+  it("filial exige número da filial (2 a 9999); matriz vira null", () => {
+    const base = { ...valid, companyType: "filial", parentCompanyId: "6f1c2b9e-8a7d-4c3b-9e2f-1a2b3c4d5e6f" };
+    for (const bad of ["", "1", "10000", "ab"]) {
+      const r = companySchema.safeParse(readCompanyForm(form({ ...base, branchNumber: bad })));
+      expect(r.success).toBe(false);
+      if (!r.success) expect(issuesToFieldErrors(r.error).branchNumber?.[0]).toMatch(/número da filial/);
+    }
+    const ok = companySchema.safeParse(readCompanyForm(form({ ...base, branchNumber: "03" })));
+    expect(ok.success && ok.data.branchNumber).toBe(3);
+    const matriz = companySchema.safeParse(readCompanyForm(form({ ...valid, branchNumber: "5" })));
+    expect(matriz.success && matriz.data.branchNumber).toBeNull();
+  });
+
   it("CNAE com máscara vira 7 dígitos; tamanho errado é recusado", () => {
     const ok = companySchema.safeParse(readCompanyForm(form({ ...valid, cnae: "4711-3/02", cnaeDescription: " Supermercados " })));
     expect(ok.success && ok.data).toMatchObject({ cnae: "4711302", cnaeDescription: "Supermercados" });
@@ -54,7 +67,7 @@ describe("companySchema", () => {
     const missing = companySchema.safeParse(readCompanyForm(form({ ...valid, companyType: "filial" })));
     expect(missing.success).toBe(false);
     if (!missing.success) expect(issuesToFieldErrors(missing.error).parentCompanyId).toBeDefined();
-    const filial = companySchema.safeParse(readCompanyForm(form({ ...valid, companyType: "filial", parentCompanyId: parent })));
+    const filial = companySchema.safeParse(readCompanyForm(form({ ...valid, companyType: "filial", parentCompanyId: parent, branchNumber: "2" })));
     expect(filial.success && filial.data.parentCompanyId).toBe(parent);
     const matriz = companySchema.safeParse(readCompanyForm(form({ ...valid, companyType: "matriz", parentCompanyId: parent })));
     expect(matriz.success && matriz.data.parentCompanyId).toBeNull();

@@ -10,7 +10,7 @@ export const MAX_CARD_IMAGE_BYTES = 10 * MB;
 // SVG fica de fora: pode carregar script se aberto direto pela URL assinada.
 export const LOGO_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 export const COVER_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
-export const CARD_IMAGE_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+export const CARD_IMAGE_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif", "image/bmp"] as const;
 export const VIDEO_MIME_TYPES = ["video/mp4", "video/webm", "video/quicktime"] as const;
 
 const DIACRITICS = /[\u0300-\u036f]/g;
@@ -66,7 +66,14 @@ export function buildStoragePath(folder: string, uuid: string, filename: string)
   return `${folder}/${uuid}-${sanitizeFilename(filename)}`;
 }
 
-const IMAGE_EXTENSIONS: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/avif": "avif",
+  "image/bmp": "bmp",
+};
 
 /** Extensão para o caminho no Storage a partir do tipo (já validado). */
 export function imageExtension(type: string): string {
@@ -75,7 +82,7 @@ export function imageExtension(type: string): string {
 
 /** Checagem rápida no navegador antes de enviar uma foto de cartão (o servidor confere de novo). */
 export function checkCardImage(file: { type: string; size: number }): string | null {
-  if (!isAllowedMime(file.type, CARD_IMAGE_MIME_TYPES)) return "formato não aceito. Use PNG, JPG ou WebP.";
+  if (!isAllowedMime(file.type, CARD_IMAGE_MIME_TYPES)) return "formato não aceito. Use PNG, JPG, WebP, GIF, AVIF ou BMP.";
   if (file.size <= 0) return "arquivo vazio.";
   if (file.size > MAX_CARD_IMAGE_BYTES) return "a imagem pode ter até 10 MB.";
   return null;
@@ -101,6 +108,23 @@ export function matchesImageSignature(bytes: Uint8Array, type: string): boolean 
       return starts(0xff, 0xd8, 0xff);
     case "image/webp":
       return starts(0x52, 0x49, 0x46, 0x46) && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    case "image/gif":
+      // "GIF8" seguido de "7a" ou "9a".
+      return starts(0x47, 0x49, 0x46, 0x38) && (bytes[4] === 0x37 || bytes[4] === 0x39) && bytes[5] === 0x61;
+    case "image/avif":
+      // Caixa ISO-BMFF "ftyp" no offset 4, marca "avif"/"avis" no offset 8.
+      return (
+        bytes[4] === 0x66 &&
+        bytes[5] === 0x74 &&
+        bytes[6] === 0x79 &&
+        bytes[7] === 0x70 &&
+        bytes[8] === 0x61 &&
+        bytes[9] === 0x76 &&
+        bytes[10] === 0x69 &&
+        (bytes[11] === 0x66 || bytes[11] === 0x73)
+      );
+    case "image/bmp":
+      return starts(0x42, 0x4d);
     default:
       return false;
   }

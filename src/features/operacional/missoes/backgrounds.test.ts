@@ -39,7 +39,7 @@ describe("CSS do fundo", () => {
   });
 
   it("quadro sem imagem usa o degradê da cor", () => {
-    expect(boardBackdrop("#1d4ed8")).toBe("linear-gradient(160deg, #1d4ed8, color-mix(in srgb, #1d4ed8 55%, #05070d))");
+    expect(boardBackdrop("#1d4ed8")).toBe("linear-gradient(160deg, #1d4ed8, color-mix(in srgb, #1d4ed8 55%, #0a0a0f))");
     expect(boardBackdrop("#1d4ed8", "ftp://x")).not.toContain("url(");
   });
 

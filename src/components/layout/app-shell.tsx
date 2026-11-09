@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MagicDustBackground } from "@/components/ui/magic-dust-background";
 import type { Reminder } from "@/features/lembretes/reminders";
 import { ShellProvider } from "./shell-context";
 import { Sidebar } from "./sidebar";
@@ -26,7 +27,8 @@ export function AppShell({
       >
         Pular para o conteúdo
       </a>
-      <div className="flex min-h-dvh w-full bg-bg text-fg">
+      <MagicDustBackground sequence={[{ type: "shape", shape: "sphere" }]} holdDuration={4} />
+      <div className="flex min-h-dvh w-full text-fg">
         <Sidebar role={user.role} />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar user={user} reminders={reminders} />

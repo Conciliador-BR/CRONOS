@@ -81,7 +81,7 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
   const supabase = await createClient();
   const [boardRes, listsRes, cardsRes, labelsRes, members, destinations] = await Promise.all([
     supabase.from("boards").select("id, name, background, background_image_path").eq("id", boardId).maybeSingle(),
-    supabase.from("board_lists").select("id, name, position").eq("board_id", boardId).order("position"),
+    supabase.from("board_lists").select("id, name, position, cover_path, cover_position").eq("board_id", boardId).order("position"),
     supabase
       .from("cards")
       .select(
@@ -103,7 +103,10 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
   const imagePath = boardRes.data.background_image_path;
   const [coverUrls, imageUrls] = await Promise.all([
     signCardImages(rows.flatMap((row) => (row.cover?.storage_path ? [row.cover.storage_path] : []))),
-    signWallpapers(imagePath ? [imagePath] : []),
+    signWallpapers([
+      ...(imagePath ? [imagePath] : []),
+      ...(listsRes.data ?? []).flatMap((list) => (list.cover_path ? [list.cover_path] : [])),
+    ]),
   ]);
   const cards: BoardCard[] = rows.map((row) => ({
     id: row.id,
@@ -128,7 +131,10 @@ export async function getBoardData(boardId: string): Promise<BoardData | null> {
       background: boardRes.data.background,
       image: toImage(imagePath, imageUrls),
     },
-    lists: listsRes.data ?? [],
+    lists: (listsRes.data ?? []).map(({ cover_path, cover_position, ...list }) => {
+      const cover = toImage(cover_path, imageUrls);
+      return { ...list, cover: cover ? { ...cover, position: cover_position } : null };
+    }),
     cards,
     labels: labelsRes.data ?? [],
     members,

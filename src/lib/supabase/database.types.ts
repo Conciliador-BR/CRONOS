@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      acquirer_company_progress: {
+        Row: {
+          acquirer_id: string
+          company_id: string
+          note: string
+          removed: boolean
+          status: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acquirer_id: string
+          company_id: string
+          note?: string
+          removed?: boolean
+          status?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acquirer_id?: string
+          company_id?: string
+          note?: string
+          removed?: boolean
+          status?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acquirer_company_progress_acquirer_id_fkey"
+            columns: ["acquirer_id"]
+            isOneToOne: false
+            referencedRelation: "acquirers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acquirer_company_progress_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       acquirer_documents: {
         Row: {
           acquirer_id: string
@@ -118,6 +163,39 @@ export type Database = {
           },
         ]
       }
+      acquirer_progress_files: {
+        Row: {
+          acquirer_id: string
+          company_id: string
+          created_at: string
+          file_name: string
+          id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          acquirer_id: string
+          company_id: string
+          created_at?: string
+          file_name: string
+          id?: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          acquirer_id?: string
+          company_id?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       acquirers: {
         Row: {
           color: string
@@ -148,6 +226,8 @@ export type Database = {
       board_lists: {
         Row: {
           board_id: string
+          cover_path: string | null
+          cover_position: number
           created_at: string
           id: string
           name: string
@@ -155,6 +235,8 @@ export type Database = {
         }
         Insert: {
           board_id: string
+          cover_path?: string | null
+          cover_position?: number
           created_at?: string
           id?: string
           name: string
@@ -162,6 +244,8 @@ export type Database = {
         }
         Update: {
           board_id?: string
+          cover_path?: string | null
+          cover_position?: number
           created_at?: string
           id?: string
           name?: string
@@ -520,6 +604,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          branch_number: number | null
           cep: string | null
           city: string | null
           client_id: string | null
@@ -543,6 +628,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch_number?: number | null
           cep?: string | null
           city?: string | null
           client_id?: string | null
@@ -566,6 +652,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch_number?: number | null
           cep?: string | null
           city?: string | null
           client_id?: string | null
@@ -1346,6 +1433,192 @@ export type Database = {
           },
         ]
       }
+      report_cells: {
+        Row: {
+          property_id: string
+          row_id: string
+          sheet_id: string
+          value: Json
+        }
+        Insert: {
+          property_id: string
+          row_id: string
+          sheet_id: string
+          value: Json
+        }
+        Update: {
+          property_id?: string
+          row_id?: string
+          sheet_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_cells_property_id_sheet_id_fkey"
+            columns: ["property_id", "sheet_id"]
+            isOneToOne: false
+            referencedRelation: "report_properties"
+            referencedColumns: ["id", "sheet_id"]
+          },
+          {
+            foreignKeyName: "report_cells_row_id_sheet_id_fkey"
+            columns: ["row_id", "sheet_id"]
+            isOneToOne: false
+            referencedRelation: "report_rows"
+            referencedColumns: ["id", "sheet_id"]
+          },
+        ]
+      }
+      report_properties: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          options: Json
+          position: number
+          sheet_id: string
+          type: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          options?: Json
+          position?: number
+          sheet_id: string
+          type: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          options?: Json
+          position?: number
+          sheet_id?: string
+          type?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_properties_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "report_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_rows: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          position: number
+          seq: number
+          sheet_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          position?: number
+          seq?: never
+          sheet_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          position?: number
+          seq?: never
+          sheet_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_rows_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_rows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_rows_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "report_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_rows_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_sheets: {
+        Row: {
+          auto_add_companies: boolean
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          auto_add_companies?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_add_companies?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_sheets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_goals: {
         Row: {
           created_at: string
@@ -1477,6 +1750,7 @@ export type Database = {
         Args: { confirmed_at: string; user_email: string; user_id: string }
         Returns: undefined
       }
+      report_sync_companies: { Args: { p_sheet_id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "gestor" | "funcionario"

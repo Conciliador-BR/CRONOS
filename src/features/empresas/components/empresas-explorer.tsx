@@ -84,7 +84,7 @@ export function EmpresasExplorer({ companies, initialUf, activeCompanyId }: Expl
   const exact = companies.length - geo.approximateCount - geo.unplaced.length;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] 2xl:grid-cols-[minmax(0,1fr)_380px]">
       <Card className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
         <CompanyMap
           collection={geo.collection}
@@ -123,7 +123,8 @@ export function EmpresasExplorer({ companies, initialUf, activeCompanyId }: Expl
         </div>
       </Card>
 
-      <div className="flex min-w-0 flex-col gap-4">
+      {/* Desktop: a lista fica ao lado do mapa, na altura da tela, com rolagem própria. */}
+      <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:-m-1 lg:overflow-y-auto lg:p-1">
         <div className="relative">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
           <Input

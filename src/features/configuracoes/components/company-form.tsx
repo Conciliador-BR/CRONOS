@@ -120,6 +120,8 @@ export function CompanyForm({
         <BranchFields
           options={matrizOptions}
           initialParentId={company?.parentCompanyId ?? null}
+          initialBranchNumber={company?.branchNumber ?? null}
+          initialCnpj={company?.cnpj ?? ""}
           branchCount={company?.branchCount ?? 0}
           errors={errors}
         />

@@ -9,7 +9,7 @@ type AuthShellProps = {
   footer?: ReactNode;
 };
 
-/** Moldura das telas públicas de autenticação (login, primeiro acesso). */
+/** Moldura centralizada das telas públicas de autenticação (primeiro acesso). */
 export function AuthShell({ title, description, children, footer }: AuthShellProps) {
   return (
     <div className="relative isolate flex flex-1 flex-col items-center justify-center px-4 py-12">

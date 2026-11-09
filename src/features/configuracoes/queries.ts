@@ -24,6 +24,7 @@ export type CompanyListItem = {
   ecCount: number;
   cnae: string | null;
   parentId: string | null;
+  branchNumber: number | null;
   located: boolean;
 };
 
@@ -33,7 +34,7 @@ export async function getCompanyList(): Promise<CompanyListItem[]> {
   const { data, error } = await supabase
     .from("companies")
     .select(
-      "id, cnpj, legal_name, market_name, trade_name, city, uf, cnae, parent_company_id, latitude, client:clients(name), ecs:company_ec_numbers(count)",
+      "id, cnpj, legal_name, market_name, trade_name, city, uf, cnae, parent_company_id, branch_number, latitude, client:clients(name), ecs:company_ec_numbers(count)",
     )
     .order("legal_name");
   if (error) fail("empresas", error.code);
@@ -49,6 +50,7 @@ export async function getCompanyList(): Promise<CompanyListItem[]> {
     ecCount: c.ecs[0]?.count ?? 0,
     cnae: c.cnae,
     parentId: c.parent_company_id,
+    branchNumber: c.branch_number,
     located: c.latitude !== null,
   }));
 }
@@ -130,6 +132,7 @@ export type CompanyFormData = {
   cnae: string | null;
   cnaeDescription: string | null;
   parentCompanyId: string | null;
+  branchNumber: number | null;
   latitude: number | null;
   longitude: number | null;
   /** Quantas filiais apontam para esta empresa (se > 0, ela não pode virar filial). */
@@ -147,7 +150,7 @@ export async function getCompanyForEdit(id: string): Promise<CompanyFormData | n
     supabase
       .from("companies")
       .select(
-        "id, cnpj, legal_name, trade_name, market_name, cep, street, number, complement, district, city, uf, client_id, cnae, cnae_description, parent_company_id, latitude, longitude",
+        "id, cnpj, legal_name, trade_name, market_name, cep, street, number, complement, district, city, uf, client_id, cnae, cnae_description, parent_company_id, branch_number, latitude, longitude",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -184,6 +187,7 @@ export async function getCompanyForEdit(id: string): Promise<CompanyFormData | n
     cnae: c.cnae,
     cnaeDescription: c.cnae_description,
     parentCompanyId: c.parent_company_id,
+    branchNumber: c.branch_number,
     latitude: c.latitude === null ? null : Number(c.latitude),
     longitude: c.longitude === null ? null : Number(c.longitude),
     branchCount: branches.count ?? 0,

@@ -12,11 +12,11 @@ export const UF_ATTRIBUTION =
 
 /** Cores do mapa (espelham os tokens de globals.css; o MapLibre não lê variáveis CSS). */
 export const MAP_COLORS = {
-  bg: "#05070d",
-  land: "#0b1020",
-  line: "#3b82f6",
-  lineStrong: "#60a5fa",
-  fill: "#2563eb",
+  bg: "#0a0a0f",
+  land: "#13131b",
+  line: "#6366f1",
+  lineStrong: "#818cf8",
+  fill: "#5b5ee8",
 } as const;
 
 /** Estilo mínimo usado quando a CARTO não responde: só fundo escuro (os estados entram por cima). */

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import { AgentLauncher } from "@/features/agente/components/agent-launcher";
 import { getMyReminders } from "@/features/lembretes/queries";
 import { requireMember } from "@/lib/auth";
 
@@ -12,6 +13,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <AppShell user={{ name: profile.full_name, email: profile.email, role: profile.role }} reminders={reminders}>
       {children}
+      {/* Só admin: o agente fica disponível em todas as páginas logadas. */}
+      {profile.role === "admin" ? <AgentLauncher /> : null}
     </AppShell>
   );
 }

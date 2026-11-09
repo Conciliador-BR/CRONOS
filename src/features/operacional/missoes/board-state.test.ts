@@ -20,8 +20,8 @@ const card = (id: string, listId: string, position: number): BoardCard => ({
 
 const base = buildBoardState({
   lists: [
-    { id: "b", name: "B", position: 2 },
-    { id: "a", name: "A", position: 1 },
+    { id: "b", name: "B", position: 2, cover: null },
+    { id: "a", name: "A", position: 1, cover: null },
   ],
   cards: [card("c2", "a", 20), card("c1", "a", 10), card("c3", "b", 5), card("x", "missing", 1)],
   labels: [],

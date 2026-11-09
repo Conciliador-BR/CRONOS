@@ -4,7 +4,7 @@ Guia visual e de componentes. Quem constrói telas usa os **tokens** e o **kit d
 
 ## Direção visual
 
-- **Preto e azul, tema escuro único.** Fundo quase preto com leve tom azul; superfícies em camadas de azul-marinho; azul forte (`primary`) só para ação principal, foco e destaques.
+- **Neutro escuro com tríade índigo + cyan + violeta, tema escuro único.** Fundo e superfícies em cinza-grafite neutro (sem tom azul), em camadas. Destaque em tríade: `primary` índigo para ação principal, aba ativa e seleção; `accent` cyan elétrico para detalhes e indicadores; `accent-2` violeta como realce quente (destaque "novo", link em evidência, 3ª série de dados), usado com parcimônia. O fundo neutro faz os destaques saltarem — nada de competição entre fundo e cor de ação.
 - **Calmo e denso.** É uma ferramenta de trabalho diário: tipografia Geist, texto 14 px nas telas internas, espaçamento em múltiplos de 4 px, cantos `rounded-lg` (controles) e `rounded-xl` (cartões).
 - **Cor com significado.** Verde = sucesso/fechado, âmbar = atenção/atraso, vermelho = erro/perdido/destrutivo. Nunca use só a cor para comunicar estado: acompanhe com texto ou ícone.
 - **Sem imagens externas.** Ilustrações são composições de UI (como a prévia do pipeline na página `/`) ou ícones `lucide-react`.
@@ -15,21 +15,22 @@ Definidos em `src/app/globals.css` e expostos ao Tailwind como `bg-*`, `text-*`,
 
 | Token | Valor | Uso |
 |---|---|---|
-| `bg` | `#05070d` | Fundo da página |
-| `surface` | `#0b1020` | Cartões, painéis, campos |
-| `surface-2` | `#111a33` | Hover, colunas de quadro, botão secundário |
-| `surface-3` | `#18233f` | Hover do secundário, elementos elevados |
-| `border` | `#1e2a4a` | Bordas e divisórias |
-| `fg` | `#e6ecff` | Texto principal |
-| `muted` | `#8a97b8` | Texto secundário, rótulos, placeholders |
-| `primary` | `#2563eb` | Ação principal, aba ativa, seleção |
-| `primary-hover` | `#1d4ed8` | Hover da ação principal |
+| `bg` | `#0a0a0f` | Fundo da página |
+| `surface` | `#13131b` | Cartões, painéis, campos |
+| `surface-2` | `#1c1c28` | Hover, colunas de quadro, botão secundário |
+| `surface-3` | `#272735` | Hover do secundário, elementos elevados |
+| `border` | `#303043` | Bordas e divisórias |
+| `fg` | `#ececf5` | Texto principal |
+| `muted` | `#9b9bb5` | Texto secundário, rótulos, placeholders |
+| `primary` | `#5b5ee8` | Ação principal, aba ativa, seleção |
+| `primary-hover` | `#4f46e5` | Hover da ação principal |
 | `primary-fg` | `#ffffff` | Texto sobre `primary` |
-| `accent` | `#38bdf8` | Detalhes (ponteiro do logo, indicadores) |
-| `success` | `#22c55e` | Concluído, cliente fechado |
-| `warning` | `#f59e0b` | Atenção, prazo próximo/atrasado |
-| `danger` | `#ef4444` | Erro, exclusão, cliente perdido |
-| `ring` | `#60a5fa` | Contorno de foco; também azul claro para texto/ícone sobre fundo azul translúcido |
+| `accent` | `#22d3ee` | Detalhes (ponteiro do logo, indicadores) |
+| `accent-2` | `#a78bfa` | Realce quente: destaque "novo", link em evidência, 3ª série de dados |
+| `success` | `#34d399` | Concluído, cliente fechado |
+| `warning` | `#fbbf24` | Atenção, prazo próximo/atrasado |
+| `danger` | `#fb7185` | Erro, exclusão, cliente perdido |
+| `ring` | `#818cf8` | Contorno de foco; também índigo claro para texto/ícone sobre fundo índigo translúcido |
 
 Transparências: use o modificador do Tailwind (`bg-primary/15`, `border-danger/40`). Animações disponíveis: `animate-fade-in`, `animate-pop-in`, `animate-slide-in-left`, `animate-slide-in-right`.
 
@@ -54,10 +55,12 @@ Importe do arquivo (`@/components/ui/button`) ou do barrel (`@/components/ui`). 
 | `Alert` | `tone`: `info`, `success`, `warning`, `danger`; `title`; filhos. |
 | `Spinner` | `label` opcional para leitores de tela. |
 | `Logo`, `LogoMark` | `variant="full"` (símbolo + nome) ou `"mark"`. Arquivo estático: `public/logo.svg`. |
+| `MagicDust` (cliente) | Partículas 3D (three + @react-three/fiber) que montam e desfazem textos/formas em ciclo. `holdDuration` enorme com um item só = forma fixa girando. `prefers-reduced-motion` não monta o canvas. Geometria e shaders em `magic-dust-geometry.ts`; cor por `particleColor` (token da paleta). |
+| `MagicDustBackground` (cliente) | Preset do CRONOS para o `MagicDust`. **Telas públicas**: apresentação (`src/app/page.tsx`) e login (`src/app/login/page.tsx`, não `primeiro-acesso`) com as palavras do produto. **Área logada** (`AppShell`): sequência de uma esfera só — o globo fica em loop girando (`holdDuration`), explodindo e se reconstruindo atrás do conteúdo. `className` define a cobertura (`fixed`/`absolute inset-0`). |
 
 ## Acessibilidade (critérios de aceite)
 
-- **Contraste** AA: texto normal ≥ 4,5:1, texto grande e ícones ≥ 3:1. Pares validados: `fg`/`bg` ≈ 17:1, `muted`/`bg` ≈ 7:1, `muted`/`surface-2` ≈ 5,9:1, `muted`/`surface-3` ≈ 5,3:1, `primary-fg`/`primary` ≈ 5,2:1, `danger`/`bg` ≈ 5,3:1. Evite `muted` com opacidade reduzida em texto pequeno.
+- **Contraste** AA: texto normal ≥ 4,5:1, texto grande e ícones ≥ 3:1. Pares validados: `fg`/`bg` ≈ 16,8:1, `muted`/`bg` ≈ 7,3:1, `muted`/`surface-2` ≈ 6,2:1, `muted`/`surface-3` ≈ 5,4:1, `primary-fg`/`primary` ≈ 5,0:1, `danger`/`bg` ≈ 7,3:1. Evite `muted` com opacidade reduzida em texto pequeno.
 - **Foco visível** em tudo que é interativo: contorno `ring` de 2 px (global em `:focus-visible`). Nunca remova `outline` sem substituto.
 - **Teclado**: todo fluxo funciona sem mouse. Modal/Drawer prendem o foco, fecham com Esc e devolvem o foco ao gatilho (comportamento do `<dialog>` nativo). Abas navegam com setas, Home e End.
 - **Semântica**: um `h1` por página; botões para ações, links para navegação; botões só com ícone têm `aria-label`; ícones decorativos com `aria-hidden`.
@@ -87,6 +90,10 @@ Importe do arquivo (`@/components/ui/button`) ou do barrel (`@/components/ui`). 
 - Avisos no canto inferior direito, até 3 por vez, dentro de uma região `aria-live="polite"` que existe desde a montagem. Cada aviso tem rótulo do limiar ("Falta 1 dia", "Falta 1 hora"), link para a agenda e botão X; Esc com foco no aviso também dispensa. Entrada com `motion-safe:animate-pop-in`.
 - Componentes com `position: fixed` não ficam dentro do topo (ele tem `backdrop-filter`): vão por portal para o `<body>` ou pela Popover API.
 
+### Painel flutuante não modal
+- Chat "Delegar missão" (`src/features/agente/components`, só admin na home): botão redondo `fixed right-4 bottom-4` e painel `fixed` acima dele (folha inferior em telas pequenas). Não usa Modal/Drawer, porque eles travam a rolagem e a página continua utilizável.
+- `role="dialog"` com `aria-modal="false"`, foco inicial no campo, Tab preso no painel, Esc fecha e devolve o foco ao botão. A conversa é `role="log"` com `aria-live="polite"` desde a montagem. Propostas da IA exigem confirmação explícita; com avisos, Confirmar fica desabilitado.
+
 ### Cartão de missão
 - Capa (foto) no topo, etiquetas, título, metadados (prazo, descrição, fotos, checklist, membros).
 - Bolinha de concluir à esquerda do título: aparece ao passar o mouse ou focar o cartão (sempre em telas de toque) e fica verde com check quando concluída; o título fica `muted` e riscado.
@@ -101,8 +108,8 @@ Importe do arquivo (`@/components/ui/button`) ou do barrel (`@/components/ui`). 
 
 ### Mapa de Empresas (`/empresas`)
 - **MapLibre GL** sobre o estilo vetorial escuro **CARTO Dark Matter** (crédito "© OpenStreetMap contributors © CARTO" no controle de atribuição, que fica sempre visível). É a única exceção à regra de "sem imagens externas". Se a CARTO não responder, o mapa usa um estilo mínimo (fundo `bg` + território em `surface`) e avisa "Mapa de ruas indisponível agora".
-- **Estados só como contorno**: linha azul fina (`#3b82f6`, opacidade 0,3–0,55 conforme o zoom); preenchimento `primary` a 10% só no hover e 5% no estado escolhido, com contorno `ring` mais forte. Nunca pintar o estado inteiro.
-- **Pino = mercado no local exato** (latitude/longitude do cadastro): bolinha azul com brilho (`ring`/`accent`) e halo pulsante; pino ativo fica mais claro. Sem coordenadas: anel vazado perto do centro da UF ("local aproximado"). Pinos e grupos são `<button>` com `aria-label` (focáveis por Tab).
+- **Estados só como contorno**: linha índigo fina (`#6366f1`, opacidade 0,3–0,55 conforme o zoom); preenchimento `primary` a 10% só no hover e 5% no estado escolhido, com contorno `ring` mais forte. Nunca pintar o estado inteiro.
+- **Pino = mercado no local exato** (latitude/longitude do cadastro): bolinha índigo com brilho (`ring`/`accent` cyan) e halo pulsante; pino ativo fica mais claro. Sem coordenadas: anel vazado perto do centro da UF ("local aproximado"). Pinos e grupos são `<button>` com `aria-label` (focáveis por Tab).
 - **Agrupamento** (cluster) ao afastar: círculo `primary` com a contagem; clique aproxima até separar.
 - **Zoom**: roda do mouse/trackpad até o nível da rua (zoom 2,5–18, limitado ao Brasil), botões + e − e teclado (setas, + e −) com o mapa focado. Rotação desligada.
 - **Efeito "entrando na nuvem"**: ao clicar num estado (ou num mercado longe), nuvens brancas/azuladas entram das bordas, cobrem a tela e passam pela câmera enquanto o mapa voa (1,7 s). Ao rolar e cruzar de país → estado ou estado → cidade, versão leve (0,95 s), no máximo uma a cada 1,8 s. Só `transform`/`opacity`, `pointer-events: none`, desligado com `prefers-reduced-motion` (os voos ficam instantâneos).

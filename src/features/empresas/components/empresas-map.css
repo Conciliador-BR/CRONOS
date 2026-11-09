@@ -3,7 +3,7 @@
  * trata todo .css como global).
  * Mapa de Empresas: pinos, agrupamentos e efeito de nuvem.
  * Animações só com transform/opacity (GPU) e desligadas com prefers-reduced-motion.
- * Cores espelham os tokens de globals.css (primary #2563eb, ring #60a5fa, accent #38bdf8).
+ * Cores espelham os tokens de globals.css (primary #5b5ee8, ring #818cf8, accent #22d3ee).
  */
 
 /* Pino ------------------------------------------------------------------- */
@@ -27,18 +27,18 @@
   width: 12px;
   height: 12px;
   border-radius: 9999px;
-  background: radial-gradient(circle at 35% 35%, #bfdbfe 0 18%, #60a5fa 40%, #2563eb 100%);
+  background: radial-gradient(circle at 35% 35%, #c7d2fe 0 18%, #818cf8 40%, #5b5ee8 100%);
   box-shadow:
-    0 0 0 2px rgb(5 7 13 / 0.9),
-    0 0 10px 3px rgb(56 189 248 / 0.65),
-    0 0 22px 8px rgb(37 99 235 / 0.35);
+    0 0 0 2px rgb(10 10 15 / 0.9),
+    0 0 10px 3px rgb(34 211 238 / 0.65),
+    0 0 22px 8px rgb(91 94 232 / 0.35);
   transition: transform 160ms ease-out;
 }
 .em-halo {
   position: absolute;
   inset: 4px;
   border-radius: 9999px;
-  background: rgb(56 189 248 / 0.45);
+  background: rgb(34 211 238 / 0.45);
   animation: em-halo 2.4s ease-out infinite;
   will-change: transform, opacity;
 }
@@ -48,16 +48,16 @@
   transform: scale(1.35);
 }
 .em-pin[data-active="true"] .em-dot {
-  background: radial-gradient(circle at 35% 35%, #ffffff 0 20%, #7dd3fc 45%, #38bdf8 100%);
+  background: radial-gradient(circle at 35% 35%, #ffffff 0 20%, #67e8f9 45%, #22d3ee 100%);
 }
 /* Posição aproximada (sem coordenadas): anel vazado, sem pulso. */
 .em-pin[data-approximate="true"] .em-dot {
   width: 11px;
   height: 11px;
-  background: rgb(5 7 13 / 0.6);
+  background: rgb(10 10 15 / 0.6);
   box-shadow:
-    0 0 0 2px #60a5fa,
-    0 0 10px 2px rgb(37 99 235 / 0.35);
+    0 0 0 2px #818cf8,
+    0 0 10px 2px rgb(91 94 232 / 0.35);
 }
 .em-pin[data-approximate="true"] .em-halo {
   display: none;
@@ -75,12 +75,12 @@
   min-width: 34px;
   height: 34px;
   padding: 0 8px;
-  border: 1px solid rgb(96 165 250 / 0.7);
+  border: 1px solid rgb(129 140 248 / 0.7);
   border-radius: 9999px;
-  background: radial-gradient(circle, rgb(37 99 235 / 0.95) 0 55%, rgb(29 78 216 / 0.9) 100%);
+  background: radial-gradient(circle, rgb(91 94 232 / 0.95) 0 55%, rgb(79 70 229 / 0.9) 100%);
   box-shadow:
-    0 0 0 5px rgb(37 99 235 / 0.22),
-    0 0 24px 6px rgb(56 189 248 / 0.35);
+    0 0 0 5px rgb(91 94 232 / 0.22),
+    0 0 24px 6px rgb(34 211 238 / 0.35);
   color: #fff;
   font: 600 12px/1 var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
@@ -146,6 +146,16 @@
   35% { opacity: var(--puff-peak, 0.95); transform: translate(0, 0) scale(1.15); }
   60% { opacity: var(--puff-peak, 0.85); transform: translate(calc(var(--dx) * -0.15), calc(var(--dy) * -0.15)) scale(1.6); }
   100% { opacity: 0; transform: translate(calc(var(--dx) * -0.6), calc(var(--dy) * -0.6)) scale(2.8); }
+}
+
+/*
+ * O mapa acompanha a altura da tela (telas grandes ganham mapa maior).
+ * Celular/tablet: a lista vem embaixo, então o mapa fica com a tela menos topo e legenda.
+ * Desktop (lg): 13rem = barra do topo, margens, bordas do card e legenda.
+ */
+.em-map { height: max(360px, calc(100svh - 12rem)); }
+@media (min-width: 64rem) {
+  .em-map { height: max(420px, calc(100dvh - 13rem)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -123,7 +123,7 @@ export function CardPhotos({ cardId }: { cardId: string }) {
           aria-hidden
         />
       </div>
-      <p className="text-xs text-muted">PNG, JPG ou WebP, até 10 MB cada.</p>
+      <p className="text-xs text-muted">PNG, JPG, WebP, GIF, AVIF ou BMP, até 10 MB cada.</p>
       <p role="status" className="text-xs text-muted">
         {progress ? `Enviando ${progress.done + 1} de ${progress.total}…` : ""}
       </p>

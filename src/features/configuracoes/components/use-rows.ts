@@ -1,5 +1,6 @@
 "use client";
 
+import { randomId } from "@/lib/random-id";
 import { useState } from "react";
 
 /** Linhas dinâmicas com chave estável (para React) e o id do banco quando a linha já existe. */
@@ -8,7 +9,7 @@ export function useRows<T extends { id?: string }>(initial: T[], empty: () => T)
 
   return {
     rows,
-    add: () => setRows((current) => [...current, { key: crypto.randomUUID(), value: empty() }]),
+    add: () => setRows((current) => [...current, { key: randomId(), value: empty() }]),
     remove: (key: string) => setRows((current) => current.filter((row) => row.key !== key)),
   };
 }

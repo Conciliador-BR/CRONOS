@@ -3,6 +3,7 @@
 import { Plus, X } from "lucide-react";
 import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { randomId } from "@/lib/random-id";
 import { createCard } from "../card-actions";
 import { appendCard, removeCard } from "../board-state";
 import { useBoard } from "./board-context";
@@ -20,7 +21,7 @@ export function AddCardForm({ listId }: { listId: string }) {
     const value = title.trim();
     if (!value) return;
     setTitle("");
-    const tempId = `${TEMP_PREFIX}${crypto.randomUUID()}`;
+    const tempId = `${TEMP_PREFIX}${randomId()}`;
     const temp = {
       id: tempId,
       listId,

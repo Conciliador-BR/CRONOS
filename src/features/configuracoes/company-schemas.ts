@@ -105,6 +105,7 @@ export const companySchema = z
     cnaeDescription: optional(200, "Descrição do CNAE"),
     companyType: z.enum(COMPANY_TYPES, { error: "Escolha matriz ou filial." }),
     parentCompanyId: z.string().trim(),
+    branchNumber: z.string().trim(),
     latitude: coordinate("Latitude", BRAZIL_LAT),
     longitude: coordinate("Longitude", BRAZIL_LNG),
     clientMode: z.enum(["none", "existing", "new"]),
@@ -116,6 +117,12 @@ export const companySchema = z
   .superRefine((value, ctx) => {
     if (value.companyType === "filial" && !z.uuid().safeParse(value.parentCompanyId).success) {
       ctx.addIssue({ code: "custom", path: ["parentCompanyId"], message: "Escolha a matriz desta filial." });
+    }
+    if (value.companyType === "filial") {
+      const n = Number(value.branchNumber);
+      if (!/^\d+$/.test(value.branchNumber) || n < 2 || n > 9999) {
+        ctx.addIssue({ code: "custom", path: ["branchNumber"], message: "Informe o número da filial (2 a 9999)." });
+      }
     }
     if ((value.latitude === null) !== (value.longitude === null)) {
       const path = value.latitude === null ? "latitude" : "longitude";
@@ -133,8 +140,9 @@ export const companySchema = z
       }
     }
   })
-  .transform(({ client, clientId, companyType, parentCompanyId, ...rest }) => ({
+  .transform(({ client, clientId, companyType, parentCompanyId, branchNumber, ...rest }) => ({
     ...rest,
+    branchNumber: companyType === "filial" ? Number(branchNumber) : null,
     parentCompanyId: companyType === "filial" ? parentCompanyId : null,
     clientId: rest.clientMode === "existing" ? clientId : null,
     newClient: rest.clientMode === "new" ? clientSchema.parse(client) : null,
@@ -159,6 +167,7 @@ export function readCompanyForm(formData: FormData) {
     cnaeDescription: text(formData, "cnaeDescription"),
     companyType: text(formData, "companyType") || "matriz",
     parentCompanyId: text(formData, "parentCompanyId"),
+    branchNumber: text(formData, "branchNumber"),
     latitude: text(formData, "latitude"),
     longitude: text(formData, "longitude"),
     clientMode: text(formData, "clientMode") || "none",

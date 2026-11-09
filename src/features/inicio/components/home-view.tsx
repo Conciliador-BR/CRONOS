@@ -7,7 +7,7 @@ import {
   ListChecks,
   MapPinned,
   Megaphone,
-  Settings,
+  ClipboardList,
   TrendingUp,
   UserRoundSearch,
   type LucideIcon,
@@ -22,7 +22,7 @@ const SHORTCUTS: Shortcut[] = [
   { href: "/operacional", label: "Operacional", description: "Missões, agenda, documentações e cursos.", icon: Briefcase },
   { href: "/comercial", label: "Comercial", description: "Pipeline, desempenho e insights de vendas.", icon: TrendingUp },
   { href: "/marketing", label: "Marketing", description: "Leads que chegaram pelo marketing.", icon: Megaphone },
-  { href: "/configuracoes", label: "Configurações", description: "Empresas, clientes, funcionários e times.", icon: Settings, managerOnly: true },
+  { href: "/operacional/relatorios", label: "Semana de relatório", description: "Tabelas da semana, progresso e ranking.", icon: ClipboardList },
 ];
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", {

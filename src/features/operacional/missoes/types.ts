@@ -15,7 +15,11 @@ export type BoardLabel = { id: string; name: string; color: string };
 
 export type ChecklistItem = { id: string; content: string; done: boolean; position: number };
 
-export type BoardList = { id: string; name: string; position: number };
+/** Capa da lista; `position`: enquadramento vertical da foto (0 = topo, 100 = base). */
+export type ListCoverImage = BackgroundImage & { position: number };
+
+/** `cover`: capa no topo da lista (URL assinada), ou null. */
+export type BoardList = { id: string; name: string; position: number; cover: ListCoverImage | null };
 
 export type BoardCard = {
   id: string;

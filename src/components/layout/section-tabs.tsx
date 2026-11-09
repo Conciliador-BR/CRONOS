@@ -8,12 +8,16 @@ import { cn } from "@/lib/utils";
 /** Abas de navegação entre subpáginas de uma seção (links, não tablist). */
 export function SectionTabs({ label, items }: { label: string; items: readonly NavLink[] }) {
   const pathname = usePathname();
+  // A aba mais específica ganha (ex.: "/x/progresso" não acende também "/x").
+  const activeHref = items
+    .filter(({ href }) => isActivePath(pathname, href))
+    .reduce<string | null>((best, { href }) => (best && best.length >= href.length ? best : href), null);
 
   return (
     <nav aria-label={label} className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
       <ul className="flex min-w-max gap-1 border-b border-border">
         {items.map(({ href, label: itemLabel }) => {
-          const active = isActivePath(pathname, href);
+          const active = href === activeHref;
           return (
             <li key={href}>
               <Link

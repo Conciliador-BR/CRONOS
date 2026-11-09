@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { MatrizOption } from "../queries";
@@ -17,16 +18,24 @@ const TYPES: { value: CompanyType; label: string; hint: string }[] = [
 export function BranchFields({
   options,
   initialParentId,
+  initialBranchNumber,
+  initialCnpj,
   branchCount,
   errors,
 }: {
   options: MatrizOption[];
   initialParentId: string | null;
+  initialBranchNumber: number | null;
+  /** CNPJ inicial: os dígitos de ordem (9–12) sugerem o número da filial. */
+  initialCnpj: string;
   /** Filiais já ligadas a esta empresa: se houver, ela não pode virar filial. */
   branchCount: number;
   errors?: Partial<Record<string, string[]>>;
 }) {
   const [type, setType] = useState<CompanyType>(initialParentId ? "filial" : "matriz");
+  const order = Number(initialCnpj.replace(/\D/g, "").slice(8, 12));
+  const suggested = initialBranchNumber ?? (order >= 2 ? order : null);
+  const defaultNumber = suggested === null ? "" : String(suggested).padStart(2, "0");
   const filialBlocked = branchCount > 0;
 
   return (
@@ -66,6 +75,12 @@ export function BranchFields({
             : TYPES.find((t) => t.value === type)?.hint}
         </p>
       </fieldset>
+
+      {type === "filial" ? (
+        <Field id="company-branch-number" label="Número da filial" required error={errors?.branchNumber} hint="Ex.: 02, 03, 04…">
+          <Input name="branchNumber" inputMode="numeric" maxLength={4} defaultValue={defaultNumber} />
+        </Field>
+      ) : null}
 
       {type === "filial" ? (
         options.length === 0 ? (

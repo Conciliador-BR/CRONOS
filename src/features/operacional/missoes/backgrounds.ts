@@ -34,7 +34,7 @@ export function cssImageUrl(url: string): string | null {
   return `url("${url.replace(/["\\\n\r]/g, (char) => encodeURIComponent(char))}")`;
 }
 
-const DARK = "#05070d";
+const DARK = "#0a0a0f";
 
 /**
  * Fundo do quadro. Sem imagem: degradê da cor. Com imagem: a foto é a última camada e a cor
@@ -52,5 +52,16 @@ export function wallpaperBackdrop(imageUrl: string, { fixed = true }: { fixed?: 
   const image = cssImageUrl(imageUrl);
   if (!image) return null;
   const attach = fixed ? " fixed" : "";
-  return `linear-gradient(180deg, rgb(5 7 13 / 0.72), rgb(5 7 13 / 0.86))${attach}, ${image} center / cover no-repeat${attach}`;
+  return `linear-gradient(180deg, rgb(10 10 15 / 0.72), rgb(10 10 15 / 0.86))${attach}, ${image} center / cover no-repeat${attach}`;
+}
+
+const listCoverFolder = (boardId: string) => `${boardFolder(boardId)}/lists`;
+
+/** Capa da lista: `boards/<board_id>/lists/<uuid>.<ext>` (mesmas policies do fundo do quadro). */
+export function listCoverPath(boardId: string, uuid: string, mimeType: string): string {
+  return `${listCoverFolder(boardId)}/${uuid}.${imageExtension(mimeType)}`;
+}
+
+export function isListCoverPath(path: string, boardId: string): boolean {
+  return isPathInFolder(path, listCoverFolder(boardId));
 }

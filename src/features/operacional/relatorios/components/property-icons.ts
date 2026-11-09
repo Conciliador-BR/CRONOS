@@ -1,0 +1,42 @@
+import {
+  AtSign,
+  Building2,
+  Calendar,
+  SquareCheck,
+  CircleChevronDown,
+  CircleUser,
+  Clock,
+  Fingerprint,
+  Hash,
+  History,
+  Link,
+  List,
+  Loader,
+  Phone,
+  Type,
+  UserPen,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import type { PropertyType } from "../types";
+
+/** Ícone de cada tipo de propriedade (cabeçalho e menu "Selecionar tipo"). */
+export const PROPERTY_TYPE_ICONS: Record<PropertyType, LucideIcon> = {
+  company: Building2,
+  text: Type,
+  number: Hash,
+  select: CircleChevronDown,
+  multi_select: List,
+  status: Loader,
+  date: Calendar,
+  person: Users,
+  checkbox: SquareCheck,
+  url: Link,
+  phone: Phone,
+  email: AtSign,
+  id: Fingerprint,
+  created_time: Clock,
+  last_edited_time: History,
+  created_by: CircleUser,
+  last_edited_by: UserPen,
+};

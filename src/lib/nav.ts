@@ -26,11 +26,17 @@ export const MAIN_NAV: readonly MainNavItem[] = [
   { href: "/configuracoes", label: "Configurações", icon: Settings, managerOnly: true },
 ];
 
+export const DOCUMENTACOES_NAV: readonly NavLink[] = [
+  { href: "/operacional/documentacoes", label: "Adquirentes" },
+  { href: "/operacional/documentacoes/progresso", label: "Progresso" },
+];
+
 export const OPERACIONAL_NAV: readonly NavLink[] = [
   { href: "/operacional/missoes", label: "Missões" },
   { href: "/operacional/agenda", label: "Agenda" },
   { href: "/operacional/documentacoes", label: "Documentações de API" },
   { href: "/operacional/cursos", label: "Cursos" },
+  { href: "/operacional/relatorios", label: "Semana de relatório" },
 ];
 
 export const COMERCIAL_NAV: readonly NavLink[] = [

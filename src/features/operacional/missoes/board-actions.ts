@@ -80,7 +80,7 @@ export async function createList(input: unknown): Promise<ActionResult<{ list: B
     .single();
   if (error) return failure("missoes.createList", error);
   revalidatePath(boardPath(boardId));
-  return { ok: true, list: data };
+  return { ok: true, list: { ...data, cover: null } };
 }
 
 export async function renameList(input: unknown): Promise<ActionResult> {

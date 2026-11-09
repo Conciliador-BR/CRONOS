@@ -2,7 +2,7 @@
 
 ## Pré-requisitos
 
-- Node.js 22 (testado com 22.22) e pnpm 10 (`packageManager` em `package.json`).
+- Node.js 22 (testado com 22.22; `pnpm check` também passa com 24.15 no Windows) e pnpm 10 (`packageManager` em `package.json`).
 - Acesso ao projeto Supabase `cronos` (ref `ctrnutyicmuhnehauqcb`) para obter chaves.
 
 ## Primeira execução
@@ -53,14 +53,26 @@ Depois de puxar mudanças, rode `pnpm install` de novo se `package.json` ou `pnp
 
 ### Na máquina (Windows, uma vez)
 
-As skills vêm no repositório (`.claude/skills`). Os plugins (Superpowers, Ponytail, Caveman, Context7) estão declarados em `.claude/settings.json`: ao abrir o Claude Code no projeto, aceite a confiança da pasta e a instalação dos plugins; confira com `/plugin` e `/skills` numa conversa nova.
+As skills vêm no repositório (`.claude/skills`). Os plugins (Superpowers, Ponytail, Caveman, Context7) estão declarados em `.claude/settings.json`, mas só carregam depois de instalados na máquina. Pela extensão do VS Code, que não põe `claude` no PATH, use o binário dela:
 
-Ferramentas globais opcionais, cada uma com efeito fora do projeto:
+```powershell
+$claude = (Get-ChildItem "$env:USERPROFILE\.vscode\extensions\anthropic.claude-code-*\resources\native-binary\claude.exe" | Select-Object -Last 1).FullName
+& $claude plugin marketplace add DietrichGebert/ponytail
+& $claude plugin marketplace add JuliusBrussee/caveman
+foreach ($p in 'superpowers@claude-plugins-official','context7@claude-plugins-official','ponytail@ponytail','caveman@caveman') { & $claude plugin install $p --scope project }
+```
+
+O `marketplace add` também grava os marketplaces no `settings.json` do usuário. Isso duplica o que o projeto declara; pode remover essa entrada sem afetar a instalação. Confira com `/plugin` e `/skills` numa conversa nova.
+
+Ferramentas de máquina, cada uma com efeito fora do projeto. Nesta máquina, o prefixo global do npm (`C:\npm-global`) não está no PATH, e o `corepack enable` sem destino exige administrador (Node em `Program Files`). Por isso os comandos abaixo usam `%APPDATA%\npm`, que já está no PATH:
 
 | Ferramenta | Comando (PowerShell) | Efeito |
 |---|---|---|
+| pnpm | `corepack enable pnpm --install-directory "$env:APPDATA\npm"` | Shim que respeita o `packageManager` (pnpm 10.28). Sem ele, use `corepack pnpm <comando>` |
 | RTK | `winget install rtk-ai.rtk` e depois `rtk init -g` | Instala o binário e registra o hook no `settings.json` do usuário do Claude Code |
-| Graphify | `winget install astral-sh.uv` (se faltar) e `uv tool install "graphifyy[sql]"`; gerar com `$env:GRAPHIFY_NO_AUTO_REFRESH='1'; graphify extract . --code-only --no-cluster` | CLI isolado no uv; saída em `graphify-out/` (ignorado pelo Git) |
-| agent-browser | `npm i -g agent-browser` e `agent-browser install` | CLI global + navegador controlado, usado pela skill `next-dev-loop` |
+| Graphify | `winget install astral-sh.uv` e `uvx --from "graphifyy[sql]==0.9.96" graphify extract . --code-only --no-cluster` | Sem o extra `sql`, as migrations ficam fora do grafo; saída em `graphify-out/` (ignorado pelo Git) |
+| agent-browser | `npm i -g --prefix "$env:APPDATA\npm" agent-browser` e `agent-browser install` | CLI + Chrome for Testing, usado pela skill `next-dev-loop` |
 
 Não rode `graphify install` nem hooks de Git: o projeto não usa atualização automática do grafo.
+
+Não rode `npx skills update` nem `npx skills check` no Windows: os dois trocam as cópias de `.claude/skills` por junctions absolutas para `.agents/skills` (fora do Git). Para atualizar uma skill, reinstale-a por cópia: `npx skills@latest add <origem> --skill <nome> --agent claude-code --copy -y` (origens em `skills-lock.json`), e depois confira o diff.
